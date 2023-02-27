@@ -14,7 +14,7 @@ from randomizer.Lists.EnemyTypes import Enemies
 from randomizer.Patching.BananaPortRando import randomize_bananaport
 from randomizer.Patching.BarrelRando import randomize_barrels
 from randomizer.Patching.BossRando import randomize_bosses
-from randomizer.Patching.CosmeticColors import apply_cosmetic_colors, overwrite_object_colors, applyKrushaKong, writeMiscCosmeticChanges, applyHolidayMode, applyHelmDoorCosmetics, writeBootMessages
+from randomizer.Patching.CosmeticColors import apply_cosmetic_colors, overwrite_object_colors, applyKrushaKong, writeMiscCosmeticChanges, applyHolidayMode, applyHelmDoorCosmetics, writeBootMessages, apply_texture_packs
 from randomizer.Patching.EnemyRando import randomize_enemies
 from randomizer.Patching.EntranceRando import randomize_entrances, filterEntranceType
 from randomizer.Patching.Hash import get_hash_images
@@ -445,6 +445,7 @@ def patching_response(responded_data):
     apply_cosmetic_colors(spoiler)
     overwrite_object_colors(spoiler)
     writeMiscCosmeticChanges(spoiler)
+    apply_texture_packs(spoiler)
     applyHolidayMode(spoiler)
     applyHelmDoorCosmetics(spoiler)
     random.seed(spoiler.settings.seed)

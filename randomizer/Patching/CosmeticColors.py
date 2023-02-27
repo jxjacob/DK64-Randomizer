@@ -9,7 +9,9 @@ from randomizer.Patching.Lib import intf_to_float, float_to_hex, int_to_list, ge
 from randomizer.Spoiler import Spoiler
 from randomizer.Enums.Kongs import Kongs
 from randomizer.Enums.Settings import CharacterColors, ColorblindMode, HelmDoorItem, KlaptrapModel
+from randomizer.Lists.TextureTables import TextureMappingTables
 from PIL import Image, ImageEnhance, ImageDraw
+from io import BytesIO
 import zlib
 import gzip
 
@@ -871,6 +873,52 @@ def applyHolidayMode(spoiler: Spoiler):
             start = js.pointer_addresses[25]["entries"][img]["pointing_to"]
             ROM().seek(start)
             ROM().writeBytes(byte_data)
+
+
+def apply_texture_packs(spoiler: Spoiler):
+    """Apply user-submitted textures to the ROM."""
+    #TODO: find a way to only enable this function when a zip is uploaded
+    uploaded_files = []
+    #TODO: make this properly adapt instead of being static 25 for testing purposes
+    for table in [25]:
+        #TODO: insert files from site, but only for the one table
+        uploaded_files = list(js.cosmetics.table25)
+        # load corresponding json base-hack/assets/texture_tables
+        #TODO: figure out why i cant just load from assets folder
+        texture_table = TextureMappingTables[table]
+        #go through each uploaded file
+        for texture in uploaded_files:
+            #TODO: fix this string slicing to account for table7 being shorter than table14/25
+            tex_int = int(texture[0][21:25], 16)
+            if str(tex_int) in texture_table:
+                #TODO: check that the files are the correct size, otherwise bail. might need to be before the match:case?
+                #match:case for the file formats (just rgba5551 for now)
+                match texture_table[str(tex_int)]['format']:
+                    case 'rgba5551':
+                        im = BytesIO(bytearray(texture[1]))
+                        im_f = Image.open(im)
+                        replacement_px = im_f.load()
+                        bytes_array = []
+                        for y in range(texture_table[str(tex_int)]['dimensions'][1]):
+                            for x in range(texture_table[str(tex_int)]['dimensions'][0]):
+                                pix_data = list(replacement_px[x, y])
+                                red = int((pix_data[0] >> 3) << 11)
+                                green = int((pix_data[1] >> 3) << 6)
+                                blue = int((pix_data[2] >> 3) << 1)
+                                alpha = int(pix_data[3] != 0)
+                                value = red | green | blue | alpha
+                                bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
+                        px_data = bytearray(bytes_array)
+                        #just to save some lines, potentially bring this bit to be after the match:case
+                        if table != 7:
+                            px_data = gzip.compress(px_data, compresslevel=9)
+                        ROM().seek(js.pointer_addresses[table]["entries"][tex_int]["pointing_to"])
+                        ROM().writeBytes(px_data)
+                    case _:
+                        pass
+                
+                    
+
 
 
 boot_phrases = (

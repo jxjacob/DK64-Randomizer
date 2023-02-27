@@ -85,6 +85,12 @@ document
         bgm = [];
         fanfares = [];
         events = [];
+        table7nam = [];
+        table7tex = [];
+        table14name = [];
+        table14tex = [];
+        table25nam = [];
+        table25tex = [];
         for (var file in new_zip.files) {
           if (file.includes("bgm/") && file.slice(-4) == ".bin") {
             new_zip
@@ -107,9 +113,31 @@ document
               .then(function (content) {
                 events.push(content);
               });
+          } else if (file.includes("textures/table_7/") && file.slice(-4) == ".png") {
+            new_zip
+              .file(file)
+              .async("Uint8Array")
+              .then(function (content) {
+                table7tex.push([table7nam[table7tex.length], content]);
+              });
+          } else if (file.includes("textures/table_14/") && file.slice(-4) == ".png") {
+            new_zip
+              .file(file)
+              .async("Uint8Array")
+              .then(function (content) {
+                table14tex.push([table14nam[table14tex.length], content]);
+              });
+          } else if (file.includes("textures/table_25/") && file.slice(-4) == ".png") {
+            table25nam.push(file)
+            new_zip
+              .file(file)
+              .async("Uint8Array")
+              .then(function (content) {
+                table25tex.push([table25nam[table25tex.length], content]);
+              });
           }
         }
-        cosmetics = { bgm: bgm, fanfares: fanfares, events: events };
+        cosmetics = { bgm: bgm, fanfares: fanfares, events: events, table7: table7tex, table14: table14tex, table25: table25tex};
       });
     };
 
