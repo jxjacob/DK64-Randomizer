@@ -531,7 +531,7 @@ class LogicVarHolder:
             HelmDoorItem.req_medal: self.BananaMedals,
             HelmDoorItem.req_crown: self.BattleCrowns,
             HelmDoorItem.req_fairy: self.BananaFairies,
-            # HelmDoorItem.req_rainbowcoin: self.BattleCrowns,
+            HelmDoorItem.req_rainbowcoin: self.RainbowCoins,
             HelmDoorItem.req_bean: self.Beans,
             HelmDoorItem.req_pearl: self.Pearls,
         }
@@ -732,11 +732,14 @@ class LogicVarHolder:
 
     def HasEnoughKongs(self, level, forPreviousLevel=False):
         """Check if kongs are required for progression, do we have enough to reach the given level."""
-        if self.settings.kongs_for_progression and level != Levels.HideoutHelm and not self.settings.hard_level_progression:
-            # Figure out where this level fits in the progression
-            levelIndex = GetShuffledLevelIndex(level)
-            if forPreviousLevel:
-                levelIndex = levelIndex - 1
+        # If your kongs are not progression (LZR, no logic, etc.) or it's *complex* level order, these requirements don't apply
+        if self.settings.kongs_for_progression and not self.settings.hard_level_progression:
+            levelIndex = 8
+            if level != Levels.HideoutHelm:
+                # Figure out where this level fits in the progression
+                levelIndex = GetShuffledLevelIndex(level)
+                if forPreviousLevel:
+                    levelIndex = levelIndex - 1
             # Must have sufficient kongs freed to make forward progress for first 5 levels
             if levelIndex < 5:
                 return len(self.GetKongs()) > levelIndex
@@ -759,34 +762,44 @@ class LogicVarHolder:
             hasRequiredMoves = self.barrels
         return self.IsKong(requiredKong) and hasRequiredMoves
 
+    def HasFillRequirementsForLevel(self, level):
+        """Check if we meet the fill's move requirements for the given level."""
+        # These requirements are only relevant for fill purposes - once we know the fill is valid, we can ignore these requirements
+        if self.assumeFillSuccess:
+            return True
+        # Additionally, these restrictions only apply to simple level order, as these are the only seeds progressing levels in 1-7 order
+        level_order_matters = not self.settings.hard_level_progression and self.settings.shuffle_loading_zones in (ShuffleLoadingZones.none, ShuffleLoadingZones.levels)
+        if level_order_matters:
+            # Levels have some special requirements depending on where they fall in the level order
+            order_of_level = 8  # If order_of_level remains unchanged in the coming loop, then the level is Helm which is always 8th
+            order_of_aztec = 0
+            for level_order in self.settings.level_order:
+                if self.settings.level_order[level_order] == level:
+                    order_of_level = level_order
+                if self.settings.level_order[level_order] == Levels.AngryAztec:
+                    order_of_aztec = level_order
+            # You need to have vines or twirl before you can enter Aztec or any level beyond it
+            if order_of_level >= order_of_aztec and not (self.vines or (self.istiny and self.twirl)):
+                return False
+            if order_of_level >= 3:
+                # Require barrels by level 3 to prevent boss barrel fill failures
+                if not self.barrels:
+                    return False
+                # Require swim by level 4 to prevent T&S being zero'd out
+                if order_of_level >= 4 and not self.swim:  # and not "the ability to dive without dive" whenever we get that squared away
+                    return False
+                # Require one of twirl or hunky chunky by level 7 to prevent non-hard-boss fill failures
+                if not self.settings.hard_bosses and order_of_level >= 7 and not (self.twirl or self.hunkyChunky):
+                    return False
+        # If we have the moves, ensure we have enough kongs as well
+        return self.HasEnoughKongs(level, forPreviousLevel=True)
+
     def IsLevelEnterable(self, level):
         """Check if level entry requirement is met."""
-        # "pathMode" is so WotH paths can always enter levels regardless of owned items
-        if not self.assumeFillSuccess:
-            level_order_matters = not self.settings.hard_level_progression and self.settings.shuffle_loading_zones in (ShuffleLoadingZones.none, ShuffleLoadingZones.levels)
-            # If level order matters...
-            if level_order_matters:
-                # Levels have some special requirements depending on where they fall in the level order
-                order_of_level = 8  # If order_of_level remains unchanged in the coming loop, then the level is Helm which is always 8th
-                order_of_aztec = 0
-                for level_order in self.settings.level_order:
-                    if self.settings.level_order[level_order] == level:
-                        order_of_level = level_order
-                    if self.settings.level_order[level_order] == Levels.AngryAztec:
-                        order_of_aztec = level_order
-                # You need to have vines or twirl before you can enter Aztec or any level beyond it
-                if order_of_level >= order_of_aztec and not (self.vines or (self.istiny and self.twirl)):
-                    return False
-                if order_of_level >= 3:
-                    # Require barrels by level 3 to prevent boss barrel fill failures
-                    if not self.barrels:
-                        return False
-                    # Require swim by level 4 to prevent T&S being zero'd out
-                    if order_of_level >= 4 and not self.swim:  # and not "the ability to dive without dive" whenever we get that squared away
-                        return False
-                    # Require one of twirl or hunky chunky by level 7 to prevent non-hard-boss fill failures
-                    if not self.settings.hard_bosses and order_of_level >= 7 and not (self.twirl or self.hunkyChunky):
-                        return False
+        # We must meet the fill's kong and move requirements to enter this level
+        if not self.HasFillRequirementsForLevel(level):
+            return False
+        # Calculate what levels we can glitch into
         dk_skip_levels = [Levels.AngryAztec, Levels.GloomyGalleon, Levels.FungiForest, Levels.CrystalCaves, Levels.CreepyCastle]
         if self.CanMoonkick():
             dk_skip_levels.append(Levels.HideoutHelm)
@@ -795,9 +808,8 @@ class LogicVarHolder:
         can_lanky_skip = self.islanky and self.lanky_blocker_skip and level != Levels.HideoutHelm
         can_tiny_skip = self.istiny and self.lanky_blocker_skip and level == Levels.HideoutHelm and self.generalclips
         can_chunky_skip = self.ischunky and self.lanky_blocker_skip and self.punch and level not in (Levels.FranticFactory, Levels.HideoutHelm)
-        return self.HasEnoughKongs(level, forPreviousLevel=True) and (
-            (self.assumeInfiniteGBs or self.GoldenBananas >= self.settings.EntryGBs[level]) or can_dk_skip or can_diddy_skip or can_lanky_skip or can_tiny_skip or can_chunky_skip
-        )
+        # To enter a level, we either need (or assume) enough GBs to get rid of B. Locker or a glitch way to bypass it
+        return self.assumeInfiniteGBs or self.GoldenBananas >= self.settings.EntryGBs[level] or can_dk_skip or can_diddy_skip or can_lanky_skip or can_tiny_skip or can_chunky_skip
 
     def WinConditionMet(self):
         """Check if the current game state has met the win condition."""
@@ -831,8 +843,15 @@ class LogicVarHolder:
         """Check if you meet the logical requirements to obtain the Rareware Coin."""
         have_enough_medals = self.BananaMedals >= self.settings.medal_requirement
         # Make sure you have access to enough levels to fit the locations in. This isn't super precise and doesn't need to be.
-        required_level = min(ceil(self.settings.medal_requirement / 4), 6)
+        required_level = max(2, min(ceil(self.settings.medal_requirement / 4), 6))  # At least level 3 to give space for medal placements, at most level 6 to allow shenanigans
         return have_enough_medals and self.IsLevelEnterable(required_level)
+
+    def CanGetRarewareGB(self):
+        """Check if you meet the logical requirements to obtain the Rareware GB."""
+        have_enough_fairies = self.BananaFairies >= self.settings.rareware_gb_fairies
+        is_correct_kong = self.istiny or self.settings.free_trade_items
+        required_level = max(2, min(ceil(self.settings.rareware_gb_fairies / 2), 5))  # At least level 2 to give space for fairy placements, at most level 5 to allow shenanigans
+        return have_enough_fairies and is_correct_kong and self.IsLevelEnterable(required_level)
 
     def BanItems(self, items):
         """Prevent an item from being picked up by the logic."""

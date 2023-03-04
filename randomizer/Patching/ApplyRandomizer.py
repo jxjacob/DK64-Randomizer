@@ -31,6 +31,7 @@ from randomizer.Patching.PuzzleRando import randomize_puzzles
 from randomizer.Patching.UpdateHints import PushHints, wipeHints, replaceIngameText
 from randomizer.Patching.MiscSetupChanges import randomize_setup
 from randomizer.Patching.BananaPlacer import randomize_cbs
+from randomizer.Patching.CoinPlacer import randomize_coins
 from randomizer.Patching.ShopRandomizer import ApplyShopRandomizer
 from randomizer.Patching.CrownPlacer import randomize_crown_pads
 from randomizer.Patching.FairyPlacer import PlaceFairies
@@ -213,7 +214,7 @@ def patching_response(responded_data):
         BooleanProperties(spoiler.settings.auto_keys, 0x15B),  # Auto-Turn Keys
         BooleanProperties(spoiler.settings.disco_chunky, 0x12F),  # Disco Chunky
         BooleanProperties(spoiler.settings.tns_location_rando, 0x10E),  # T&S Portal Location Rando
-        BooleanProperties(spoiler.settings.cb_rando, 0xAF),  # Show CBs/Coins
+        BooleanProperties(spoiler.settings.cb_rando or spoiler.settings.coin_rando, 0xAF),  # Show CBs/Coins
         BooleanProperties(spoiler.settings.cb_rando, 0x10B),  # Remove Rock Bunch
         BooleanProperties(spoiler.settings.wrinkly_location_rando or spoiler.settings.remove_wrinkly_puzzles, 0x11F),  # Wrinkly Rando
         BooleanProperties(spoiler.settings.helm_hurry, 0xAE),  # Helm Hurry
@@ -227,6 +228,7 @@ def patching_response(responded_data):
         BooleanProperties(spoiler.settings.coin_door_item == HelmDoorItem.opened, 0x33),  # Coin Door Open
         BooleanProperties(spoiler.settings.item_reward_previews, 0x101, 7),  # Bonus Matches Contents
         BooleanProperties(spoiler.settings.portal_numbers, 0x11E),  # Portal Numbers
+        BooleanProperties(spoiler.settings.dark_mode_textboxes, 0x44),  # Dark Mode Text bubble
     ]
 
     for prop in boolean_props:
@@ -364,6 +366,11 @@ def patching_response(responded_data):
     # The WinCondition enum is indexed to allow this.
     ROM().write(int(spoiler.settings.win_condition))
 
+    # Colorblind mode
+    ROM().seek(sav + 0x43)
+    # The ColorblindMode enum is indexed to allow this.
+    ROM().write(int(spoiler.settings.colorblind_mode))
+
     keys_turned_in = [0, 1, 2, 3, 4, 5, 6, 7]
     if len(spoiler.settings.krool_keys_required) > 0:
         for key in spoiler.settings.krool_keys_required:
@@ -428,6 +435,7 @@ def patching_response(responded_data):
     randomize_setup(spoiler)
     randomize_puzzles(spoiler)
     randomize_cbs(spoiler)
+    randomize_coins(spoiler)
     ApplyShopRandomizer(spoiler)
     place_randomized_items(spoiler)  # Has to be after kong rando cosmetic and moves
     remove_existing_indicators(spoiler)

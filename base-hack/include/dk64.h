@@ -61,6 +61,8 @@ extern void setArcadeTextColor(int red, int green, int blue, int alpha);
 extern int arcadeGetObjIndexOfType(int obj_type);
 extern int arcadeGetNextVacantSlot(void);
 extern void setArcadeSong(int songIndex);
+extern void sendToHiScorePage(void);
+extern void sendToNextMap(void);
 extern void hideHUD(void);
 extern void tagKong(int kong_actor_index);
 extern void clearGun(void* player);
@@ -104,6 +106,10 @@ extern float getAnimationTimer(void* actor);
 extern int getPadGravity(void* actor);
 extern void BananaMedalGet(void);
 extern void CrownGet(void);
+
+extern void cancelMusic(int song, int unk0);
+extern void removeGorillaGone(void* actor);
+extern void resetActorDL(void* actor);
 
 extern void wipeStoredSetup(void* setup);
 extern void complex_free(void* ptr);
@@ -315,6 +321,8 @@ extern void spawnModelTwoWithDelay(int type, int x, int y, int z, int delay);
 extern int printDebugText(char* string, int v1, int v2, int v3, int v4);
 extern void dumpReturns(void* info);
 extern void updateBones(bonedata* bone, int force_update);
+extern void resetKongVars(void);
+extern void handleAnimation(void* actor);
 
 //vanilla data
 extern float TransitionSpeed;
@@ -404,6 +412,7 @@ extern short HelmMinigameFlags[10];
 extern short p1PressedButtons;
 extern short p1HeldButtons;
 extern char player_count;
+extern char FocusedPlayerIndex;
 extern int* sprite_table[0xAF];
 extern char sprite_translucency;
 extern int* bbbandit_array[4];
@@ -442,6 +451,10 @@ extern short MapVoid_MinX;
 extern short MapVoid_MinZ;
 extern short MapVoid_MaxX;
 extern short MapVoid_MaxZ;
+
+extern float LeaveWaterVelocity[7];
+extern float unkGravity[7];
+extern float GroundAttackSpeedThreshold[7];
 
 extern bonus_vanilla_info BonusBarrelData[54];
 
@@ -554,7 +567,10 @@ extern unsigned short PotionAnimations[6];
 extern char ArcadeBackgrounds[4];
 extern unsigned char ArcadeExited;
 extern unsigned char ArcadeStoryMode;
+extern unsigned char ArcadeMap;
 extern unsigned char ArcadeEnableReward;
+extern int ArcadeScores[5];
+extern int ArcadeCurrentScore;
 
 extern unsigned char CharSpawnerActorSubtypes[113];
 extern charSpawnerActorInfo CharSpawnerActorData[113];

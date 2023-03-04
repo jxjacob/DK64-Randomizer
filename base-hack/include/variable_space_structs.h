@@ -18,7 +18,8 @@ typedef struct varspace {
 	/* 0x037 */ char k_rool_toes[10];
 	/* 0x041 */ char randomize_toes;
 	/* 0x042 */ char random_drops; // Random enemy item drops
-	/* 0x043 */ char unk43[0x45-0x43];
+	/* 0x043 */ char colorblind_mode; // 0 = Off, 1 = Prot, 2 = Deut, 3 = Trit
+	/* 0x044 */ char dark_mode_textboxes; // 0 = Light Mode, 1 = Dark Mode
 	/* 0x045 */ unsigned char slam_prices[2]; // Array of simian slam upgrade prices: [1,2]. First item is super simian slam (blue), 2nd is super duper simian slam (red)
 	/* 0x047 */ char call_parent_filter; // Calls filter to remove "unnecessary" links from the parent chain
 	/* 0x048 */ char arcade_order[4]; // 01 = 25m, 04 = 50m, 03 = 75m, 02 = 100m
@@ -59,7 +60,8 @@ typedef struct varspace {
 	/* 0x0AE */ char helm_hurry_mode; // 0 = Off, 1 = On: Starting a new file summons the helm timer, each BP adds 2 minutes to the clock, timing out disables saving.
 	/* 0x0AF */ char always_show_coin_cbs; // 0 = No (Vanilla), 1 = Yes
 	/* 0x0B0 */ quality_options quality_of_life; // Size: 2
-	/* 0x0B2 */ char unk_B0[0xDC - 0xB2];
+	/* 0x0B2 */ char unk_B0[0xDB - 0xB2];
+	/* 0x0DB */ unsigned char seasonal_changes; // 0 = None, 1 = Halloween, 2 = Christmas
 	/* 0x0DC */ unsigned short japes_rock_item; // Actor ID of item that spawns from destroying the rock covering Japes Underground
 	/* 0x0DE */ unsigned short vulture_item; // Actor ID of item that the vulture in Tiny Temple has
 	/* 0x0E0 */ fairy_activations fairy_triggers_disabled;

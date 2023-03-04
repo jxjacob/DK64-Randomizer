@@ -1232,6 +1232,7 @@ ColoredBananaGroupList = [
         konglist=[Kongs.donkey, Kongs.diddy, Kongs.lanky, Kongs.tiny, Kongs.chunky],
         region=Regions.IglooArea,
         vanilla=True,
+        logic=lambda l: Events.CavesLargeBoulderButton in l.Events or l.generalclips or l.CanPhaseswim(),
         locations=[
             [1, 1.0, 807.6382446289062, 48.5, 760.23779296875],
             [1, 1.0, 786.4091186523438, 48.5, 824.6043090820312],
@@ -1503,7 +1504,7 @@ ColoredBananaGroupList = [
         konglist=[Kongs.diddy],
         region=Regions.DiddyUpperCabin,
         vanilla=True,
-        logic=lambda l: l.jetpack,
+        logic=lambda l: l.jetpack and (l.guitar or l.oranges) and l.isdiddy and l.spring,
         locations=[
             [5, 1.0, 302.3088684082031, 288.8333435058594, 519.8643188476562],
             [5, 1.0, 130.18800354003906, 288.8333435058594, 228.1186065673828],
@@ -1772,7 +1773,7 @@ BalloonList = [
         speed=7,
         konglist=[Kongs.diddy],
         region=Regions.DiddyUpperCabin,
-        logic=lambda l: l.jetpack or l.scope,
+        logic=lambda l: (l.jetpack and (l.guitar or l.oranges) and l.spring) or l.scope,
         points=[[420, 460, 151], [197, 460, 157]],
     ),
     Balloon(id=30, map_id=Maps.CavesDonkeyCabin, name="Around room", speed=10, konglist=[Kongs.donkey], region=Regions.DonkeyCabin, points=[[180, 100, 180], [446, 100, 275], [247, 100, 407]]),

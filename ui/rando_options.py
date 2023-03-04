@@ -93,7 +93,7 @@ def max_randomized_fairies(event):
         fairy_req.value = 20
 
 
-@bind("click", "crown_door_item")
+@bind("change", "crown_door_item")
 def updateDoorOneNumAccess(event):
     """Toggle the textboxes for the first helm door."""
     door_one_selection = js.document.getElementById("crown_door_item")
@@ -125,7 +125,31 @@ def updateDoorOneNumAccess(event):
         door_one_req.value = 5
 
 
-@bind("click", "coin_door_item")
+@bind("click", "nav-progression-tab")
+@bind("change", "crown_door_item")
+def updateDoorOneCountText(evt):
+    """Change the text of the door 1 item count label."""
+    label_text_map = {
+        "vanilla": "Crowns",
+        "req_gb": "Bananas",
+        "req_bp": "Blueprints",
+        "req_companycoins": "Coins",
+        "req_key": "Keys",
+        "req_medal": "Medals",
+        "req_fairy": "Fairies",
+        "req_rainbowcoin": "Coins",
+        "req_bean": "Bean",
+        "req_pearl": "Pearls",
+    }
+    door_one_text = js.document.getElementById("door-1-select-title")
+    door_one_selection = js.document.getElementById("crown_door_item").value
+    if door_one_selection in label_text_map:
+        door_one_text.innerText = f"{label_text_map[door_one_selection]} Needed For Door 1"
+    else:
+        door_one_text.innerText = "Door 1 Item Count"
+
+
+@bind("change", "coin_door_item")
 def updateDoorTwoNumAccess(event):
     """Toggle the textboxes for the second helm door."""
     door_two_selection = js.document.getElementById("coin_door_item")
@@ -155,6 +179,30 @@ def updateDoorTwoNumAccess(event):
         door_two_req.value = 1
     elif door_two_selection.value == "req_pearl" and int(door_two_req.value) > 5:
         door_two_req.value = 5
+
+
+@bind("click", "nav-progression-tab")
+@bind("change", "coin_door_item")
+def updateDoorTwoCountText(evt):
+    """Change the text of the door 2 item count label."""
+    label_text_map = {
+        "vanilla": "Coins",
+        "req_gb": "Bananas",
+        "req_bp": "Blueprints",
+        "req_key": "Keys",
+        "req_medal": "Medals",
+        "req_crown": "Crowns",
+        "req_fairy": "Fairies",
+        "req_rainbowcoin": "Coins",
+        "req_bean": "Bean",
+        "req_pearl": "Pearls",
+    }
+    door_two_text = js.document.getElementById("door-2-select-title")
+    door_two_selection = js.document.getElementById("coin_door_item").value
+    if door_two_selection in label_text_map:
+        door_two_text.innerText = f"{label_text_map[door_two_selection]} Needed For Door 2"
+    else:
+        door_two_text.innerText = "Door 2 Item Count"
 
 
 @bind("focusout", "crown_door_item_count")
@@ -565,6 +613,9 @@ def toggle_item_rando(evt):
     item_rando_pool = document.getElementById("item_rando_list_selected").options
     smaller_shops = document.getElementById("smaller_shops")
     shockwave = document.getElementById("shockwave_status_shuffled")
+    move_vanilla = document.getElementById("move_off")
+    move_rando = document.getElementById("move_on")
+    move_start = document.getElementById("move_start_with")
     shops_in_pool = False
     nothing_selected = True
     for option in item_rando_pool:
@@ -585,6 +636,9 @@ def toggle_item_rando(evt):
             smaller_shops.setAttribute("disabled", "disabled")
             smaller_shops.checked = False
             shockwave.removeAttribute("disabled")
+            move_vanilla.removeAttribute("disabled")
+            move_rando.removeAttribute("disabled")
+            move_start.removeAttribute("disabled")
         else:
             # Enable item rando modal, prevent shockwave/camera coupling, and enable smaller shops if it's in the pool
             selector.removeAttribute("disabled")
@@ -760,7 +814,7 @@ def toggle_bananaport_selector(event):
 @bind("click", "nav-patch-tab")
 def toggle_patch_ui(event):
     """Disable non-cosmetic tabs if using patch file."""
-    for tab in ["nav-started-tab", "nav-random-tab", "nav-overworld-tab", "nav-difficulty-tab", "nav-qol-tab"]:
+    for tab in ["nav-started-tab", "nav-random-tab", "nav-overworld-tab", "nav-progression-tab", "nav-qol-tab"]:
         document.getElementById(tab).setAttribute("disabled", "disabled")
     document.getElementById("nav-cosmetics-tab").click()
 
@@ -768,7 +822,7 @@ def toggle_patch_ui(event):
 @bind("click", "nav-seed-gen-tab")
 def toggle_patch_ui(event):
     """Re-enable non-cosmetic tabs and hide override option if generating a new seed."""
-    for tab in ["nav-started-tab", "nav-random-tab", "nav-overworld-tab", "nav-difficulty-tab", "nav-qol-tab"]:
+    for tab in ["nav-started-tab", "nav-random-tab", "nav-overworld-tab", "nav-progression-tab", "nav-qol-tab"]:
         document.getElementById(tab).removeAttribute("disabled")
     document.getElementById("override_div").setAttribute("hidden", "hidden")
 

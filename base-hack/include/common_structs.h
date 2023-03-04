@@ -225,7 +225,9 @@ typedef struct playerData {
 	/* 0x1B8 */ float velocity_cap;
 	/* 0x1BC */ char unk_1BC[0x1C8-0x1BC];
 	/* 0x1C8 */ short turn_speed;
-	/* 0x1CA */ char unk_1CA[0x1D0-0x1CA];
+	/* 0x1CA */ char unk_1CA[0x1CC-0x1CA];
+	/* 0x1CC */ short old_tag_state;
+	/* 0x1CE */ char unk_1CE[0x1D0-0x1CE];
 	/* 0x1D0 */ short ostand_value;
 	/* 0x1D2 */ char unk_1D2[0x1E8-0x1D2];
 	/* 0x1E8 */ float unk_1E8;
@@ -255,7 +257,8 @@ typedef struct playerData {
 	/* 0x36D */ char unk_36D[0x36F - 0x36D];
 	/* 0x36F */ char new_kong;
 	/* 0x370 */ int strong_kong_ostand_bitfield;
-	/* 0x374 */ char unk_374[0x37D-0x374];
+	/* 0x374 */ int unk_fairycam_bitfield;
+	/* 0x378 */ char unk_374[0x37D-0x378];
 	/* 0x37D */ unsigned char rambi_enabled;
 	/* 0x37E */ char unk_37E[0x380 - 0x37E];
 	/* 0x380 */ short trap_bubble_timer;

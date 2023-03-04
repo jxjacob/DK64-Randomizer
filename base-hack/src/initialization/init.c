@@ -163,6 +163,7 @@ void initHack(int source) {
             initItemRando();
 			initCosmetic();
 			initStackTrace();
+			initTextChanges();
 
 			replace_zones(1);
 			randomize_bosses();
@@ -276,6 +277,8 @@ void initHack(int source) {
 				*(int*)(0x80661B64) = 0; // Remove Ripple Timer 1
 				*(int*)(0x8068BDF4) = 0; // Disable rocking in Seasick Ship
 				*(short*)(0x8068BDFC) = 0x1000; // Disable rocking in Mech Fish
+				*(int*)(0x806609DC) = 0x44802000; // Change ripple oscillation X to 0 (mtc1 $zero, $f4)
+				*(int*)(0x806609EC) = 0x44805000; // Change ripple oscillation Z to 0 (mtc1 $zero, $f10)
 			}
 			// Slow Turn Fix
 			*(int*)(0x806D2FC0) = 0x0C000000 | (((int)&fixRBSlowTurn & 0xFFFFFF) >> 2);
@@ -298,6 +301,8 @@ void initHack(int source) {
 			*(short*)(0x806F916A) = FLAG_ABILITY_CAMERA; // Film max
 			// LZ Save
 			*(int*)(0x80712EC4) = 0x0C000000 | (((int)&postKRoolSaveCheck & 0xFFFFFF) >> 2);
+			// Opacity fixes
+			*(int*)(0x806380B0) = 0x0C000000 | (((int)&handleModelTwoOpacity & 0xFFFFFF) >> 2);
 			if (Rando.medal_cb_req > 0) {
 				// Change CB Req
 				*(short*)(0x806F934E) = Rando.medal_cb_req; // Acquisition

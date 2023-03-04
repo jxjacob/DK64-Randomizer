@@ -375,6 +375,7 @@ class Settings:
         self.enguarde_colors = CharacterColors.vanilla
         self.enguarde_custom_color = "#000000"
         self.disco_chunky = False
+        self.dark_mode_textboxes = False
         self.krusha_ui = KrushaUi.no_slot
         self.krusha_kong = None
         self.misc_cosmetics = False
@@ -422,6 +423,7 @@ class Settings:
         self.crown_enemy_rando = CrownEnemyRando.off
         self.enemy_speed_rando = False
         self.cb_rando = False
+        self.coin_rando = False
         self.crown_placement_rando = False
         self.override_cosmetics = False
         self.random_colors = False
@@ -510,7 +512,7 @@ class Settings:
             HelmDoorItem.req_medal: {"max": 40, "random_min": 5, "random_max": 20},
             HelmDoorItem.req_crown: {"max": 10, "random_min": 2, "random_max": 6},
             HelmDoorItem.req_fairy: {"max": 18, "random_min": 3, "random_max": 10},  # Remove two fairies since you can't get the final two fairies glitchless if on the crown door
-            # HelmDoorItem.req_rainbowcoin: {"max": 16, "random_min": 4, "random_max": 16},
+            HelmDoorItem.req_rainbowcoin: {"max": 16, "random_min": 4, "random_max": 16},
             HelmDoorItem.req_bean: {"max": 1, "random_min": 1, "random_max": 1},
             HelmDoorItem.req_pearl: {"max": 5, "random_min": 1, "random_max": 3},
         }

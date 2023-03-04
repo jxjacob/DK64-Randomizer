@@ -21,7 +21,8 @@ from randomizer.Enums.Settings import (
     ShockwaveStatus,
     TrainingBarrels,
     WinCondition,
-    WrinklyHints
+    WrinklyHints,
+    FillAlgorithm
 )
 # from randomizer.Enums.Items import Items
 import randomizer.Lists.Exceptions as Ex
@@ -112,7 +113,7 @@ def generate_lo_rando_race_settings():
     data["helm_phase_count"] = 3  # usually 3
     data["krool_access"] = True  # usually True - this is the weirdly named key 8 required setting
     data["keys_random"] = False  # "key count is random" setting
-    data["krool_key_count"] = 5  # usually 5
+    data["krool_key_count"] = 8  # usually 5
     data["select_keys"] = False  # usually False, if True use below
     # data["starting_keys_list_selected"] = [Items.JungleJapesKey]  # JungleJapesKey, AngryAztecKey, etc.
     data["starting_random"] = False  # "starting kong count is random" setting
@@ -151,7 +152,7 @@ def generate_lo_rando_race_settings():
     data["glitches_selected"] = []
     data["microhints_enabled"] = MicrohintsEnabled.all  # off/base/all
     data["smaller_shops"] = True  # likely to be True in item rando, many settings force it to be false
-    data["alter_switch_allocation"] = False  # likely to be True, easier to test things when false
+    data["alter_switch_allocation"] = True  # likely to be True, easier to test things when false
     data["random_starting_region"] = False  # likely to be False
     data["random_fairies"] = False  # likely to be False
 
@@ -179,7 +180,7 @@ def generate_settings():
 
 def test_forward_fill(generate_lo_rando_race_settings):
     """Asdf."""
-    generate_lo_rando_race_settings["algorithm"] = "forward"
+    generate_lo_rando_race_settings["algorithm"] = FillAlgorithm.forward
     settings = Settings(generate_lo_rando_race_settings)
     spoiler = Spoiler(settings)
     Generate_Spoiler(spoiler)
