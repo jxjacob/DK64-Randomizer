@@ -114,6 +114,7 @@ document
                 events.push(content);
               });
           } else if (file.includes("textures/table_7/") && file.slice(-4) == ".png") {
+            table7nam.push(file)
             new_zip
               .file(file)
               .async("Uint8Array")
@@ -121,6 +122,7 @@ document
                 table7tex.push([table7nam[table7tex.length], content]);
               });
           } else if (file.includes("textures/table_14/") && file.slice(-4) == ".png") {
+            table14nam.push(file)
             new_zip
               .file(file)
               .async("Uint8Array")

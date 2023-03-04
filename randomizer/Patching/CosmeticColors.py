@@ -400,6 +400,48 @@ def writeColorImageToROM(im_f, table_index, file_index, width, height, transpare
     ROM().writeBytes(data)
 
 
+
+def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, transparent_border: bool):
+    """Write texture to ROM. Is also bodged for autocompression."""
+    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
+    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
+    file_size = file_end - file_start
+    ROM().seek(file_start)
+    stored_downsample = 0
+    an_issue = True
+    while an_issue:
+        an_issue = False
+        if stored_downsample != 0:
+            im_f = im_f.convert("P", palette=Image.ADAPTIVE, colors=stored_downsample)
+            im_f = im_f.convert("RGBA")
+        pix = im_f.load()
+        width, height = im_f.size
+        bytes_array = []
+        for y in range(height):
+            for x in range(width):
+                if transparent_border and ((x == 0) or (y == 0) or (x >= (width - 1)) or (y >= (height - 1))):
+                    pix_data = [0, 0, 0, 0]
+                else:
+                    pix_data = list(pix[x, y])
+                red = int((pix_data[0] >> 3) << 11)
+                green = int((pix_data[1] >> 3) << 6)
+                blue = int((pix_data[2] >> 3) << 1)
+                alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
+                value = red | green | blue | alpha
+                bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
+        data = bytearray(bytes_array)
+        if len(data) > (2 * width * height):
+            print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+            #TODO: add support for autodownsizing provided image
+        if table_index in (14, 25):
+            data = gzip.compress(data, compresslevel=9)
+        #print(f"File {table_index} :: {file_index} -- {len(data)}")
+        if len(data) > file_size:
+            print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
+            stored_downsample = int(len(im_f.getcolors())*0.9)
+            an_issue=True
+    ROM().writeBytes(data)
+
 def writeColorToROM(color, table_index, file_index):
     """Write color to ROM for kasplats."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
@@ -879,17 +921,21 @@ def apply_texture_packs(spoiler: Spoiler):
     """Apply user-submitted textures to the ROM."""
     #TODO: find a way to only enable this function when a zip is uploaded
     uploaded_files = []
-    #TODO: make this properly adapt instead of being static 25 for testing purposes
-    for table in [25]:
-        #TODO: insert files from site, but only for the one table
-        uploaded_files = list(js.cosmetics.table25)
-        # load corresponding json base-hack/assets/texture_tables
+    for table in [7, 14, 25]:
+        #TODO: make this not shit
+        match table:
+            case 7:
+                uploaded_files = list(js.cosmetics.table7)
+            case 14:
+                uploaded_files = list(js.cosmetics.table14)
+            case 25:
+                uploaded_files = list(js.cosmetics.table25)
         #TODO: figure out why i cant just load from assets folder
         texture_table = TextureMappingTables[table]
         #go through each uploaded file
         for texture in uploaded_files:
-            #TODO: fix this string slicing to account for table7 being shorter than table14/25
-            tex_int = int(texture[0][21:25], 16)
+            print(texture[0])
+            tex_int = int(texture[0][-8:-4], 16)
             if str(tex_int) in texture_table:
                 #TODO: check that the files are the correct size, otherwise bail. might need to be before the match:case?
                 #match:case for the file formats (just rgba5551 for now)
@@ -897,23 +943,7 @@ def apply_texture_packs(spoiler: Spoiler):
                     case 'rgba5551':
                         im = BytesIO(bytearray(texture[1]))
                         im_f = Image.open(im)
-                        replacement_px = im_f.load()
-                        bytes_array = []
-                        for y in range(texture_table[str(tex_int)]['dimensions'][1]):
-                            for x in range(texture_table[str(tex_int)]['dimensions'][0]):
-                                pix_data = list(replacement_px[x, y])
-                                red = int((pix_data[0] >> 3) << 11)
-                                green = int((pix_data[1] >> 3) << 6)
-                                blue = int((pix_data[2] >> 3) << 1)
-                                alpha = int(pix_data[3] != 0)
-                                value = red | green | blue | alpha
-                                bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
-                        px_data = bytearray(bytes_array)
-                        #just to save some lines, potentially bring this bit to be after the match:case
-                        if table != 7:
-                            px_data = gzip.compress(px_data, compresslevel=9)
-                        ROM().seek(js.pointer_addresses[table]["entries"][tex_int]["pointing_to"])
-                        ROM().writeBytes(px_data)
+                        badlywriteColorImageToROM(im_f, table, tex_int, texture_table[str(tex_int)]['dimensions'][1], texture_table[str(tex_int)]['dimensions'][0], False)
                     case _:
                         pass
                 
