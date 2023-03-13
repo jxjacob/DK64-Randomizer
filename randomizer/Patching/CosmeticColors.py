@@ -414,6 +414,7 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
     an_issue = True
     while an_issue:
         an_issue = False
+        #TODO: actually make the autocompress not crash the video game
         if stored_downsample != 0:
             im_f = im_f.convert("P", palette=Image.ADAPTIVE, colors=stored_downsample)
             im_f = im_f.convert("RGBA")
