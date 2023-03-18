@@ -13,7 +13,7 @@ from randomizer.Enums.Transitions import Transitions
 from randomizer.Enums.Types import Types
 from randomizer.ItemPool import GetKongForItem
 from randomizer.Lists.Item import ItemList, NameFromKong
-from randomizer.Lists.Location import LocationList, SharedShopLocations, TrainingBarrelLocations
+from randomizer.Lists.Location import LocationList, SharedShopLocations, TrainingBarrelLocations, PreGivenLocations
 from randomizer.Lists.MapsAndExits import GetMapId
 from randomizer.Lists.ShufflableExit import ShufflableExits
 from randomizer.Lists.WrinklyHints import ClearHintMessages, hints
@@ -314,10 +314,15 @@ hint_distribution = {
 }
 HINT_CAP = 35  # There are this many total slots for hints
 
+hint_reroll_cap = 1  # How many times are you willing to reroll a hinted location?
+hint_reroll_chance = 1.0  # What % of the time do you reroll in conditions that could trigger a reroll?
+globally_hinted_location_ids = []
+
 
 def compileHints(spoiler: Spoiler):
     """Create a hint distribution, generate buff hints, and place them in locations."""
     ClearHintMessages()
+    globally_hinted_location_ids = []
     locked_hint_types = [HintType.RequiredKongHint, HintType.RequiredKeyHint, HintType.RequiredWinConditionHint, HintType.RequiredHelmDoorHint]  # Some hint types cannot have their value changed
     maxed_hint_types = []  # Some hint types cannot have additional hints placed
     minned_hint_types = []  # Some hint types cannot have all their hints removed
@@ -333,7 +338,7 @@ def compileHints(spoiler: Spoiler):
     if spoiler.settings.helm_setting != HelmSetting.skip_all and spoiler.settings.helm_phase_count < 5:
         valid_types.append(HintType.HelmOrder)
         minned_hint_types.append(HintType.HelmOrder)
-    if not spoiler.settings.unlock_all_moves and spoiler.settings.move_rando not in (MoveRando.off, MoveRando.item_shuffle):
+    if spoiler.settings.move_rando not in (MoveRando.off, MoveRando.item_shuffle) and Types.Shop not in spoiler.settings.shuffled_location_types:
         valid_types.append(HintType.FullShopWithItems)
         valid_types.append(HintType.MoveLocation)
     if spoiler.settings.shuffle_items and Types.Shop in spoiler.settings.shuffled_location_types:
@@ -350,8 +355,8 @@ def compileHints(spoiler: Spoiler):
             #     hint_distribution[HintType.FoolishMove] = len(spoiler.foolish_moves)
             #     maxed_hint_types.append(HintType.FoolishMove)
             valid_types.append(HintType.WothLocation)
-            # K. Rool seeds could use some help finding the last pesky moves (assuming you don't start with them)
-            if spoiler.settings.win_condition == WinCondition.beat_krool and not spoiler.settings.unlock_all_moves:
+            # K. Rool seeds could use some help finding the last pesky moves
+            if spoiler.settings.win_condition == WinCondition.beat_krool:
                 valid_types.append(HintType.RequiredWinConditionHint)
                 if Kongs.diddy in spoiler.settings.krool_order:
                     hint_distribution[HintType.RequiredWinConditionHint] += 1
@@ -454,8 +459,8 @@ def compileHints(spoiler: Spoiler):
                 key_location_ids[location.item] = location_id
 
         for key_id in woth_key_ids:
-            # Keys you are expected to find early only get one direct hint OR if you start with all moves, treat all keys as early keys because there are no paths
-            if (key_id in (Items.JungleJapesKey, Items.AngryAztecKey) and level_order_matters and not spoiler.settings.hard_level_progression) or spoiler.settings.unlock_all_moves:
+            # Keys you are expected to find early only get one direct hint, treat all keys as early keys because there are no paths
+            if key_id in (Items.JungleJapesKey, Items.AngryAztecKey) and level_order_matters and not spoiler.settings.hard_level_progression:
                 key_hint_dict[key_id] = 1
             # Late or complex keys get a number of hints based on the length of the path to them
             else:
@@ -707,8 +712,9 @@ def compileHints(spoiler: Spoiler):
         for key_id in key_hint_dict:
             if key_hint_dict[key_id] == 0:
                 continue
-            # For early Keys 1-2 (or when starting with all moves), place one hint with their required Kong and the level they're in
-            if (key_id in (Items.JungleJapesKey, Items.AngryAztecKey) and level_order_matters and not spoiler.settings.hard_level_progression) or spoiler.settings.unlock_all_moves:
+            # For early Keys 1-2, place one hint with their required Kong and the level they're in
+            if key_id in (Items.JungleJapesKey, Items.AngryAztecKey) and level_order_matters and not spoiler.settings.hard_level_progression:
+                globally_hinted_location_ids.append(key_location_ids[key_id])
                 location = LocationList[key_location_ids[key_id]]
                 key_item = ItemList[key_id]
                 kong_index = location.kong
@@ -753,7 +759,14 @@ def compileHints(spoiler: Spoiler):
                     # Don't hint the Helm Key in Helm when you know it's there
                     if key_id == Items.HideoutHelmKey and spoiler.settings.key_8_helm:
                         path = [loc for loc in path if loc != Locations.HelmKey]
-                    path_location_id = random.choice([loc for loc in path if loc not in already_hinted_locations])
+                    hintable_location_ids = [loc for loc in path if loc not in already_hinted_locations]  # Never hint the same location for the same path twice
+                    path_location_id = random.choice(hintable_location_ids)
+                    # Soft reroll duplicate hints based on hint reroll parameters
+                    rerolls = 0
+                    while rerolls < hint_reroll_cap and path_location_id in globally_hinted_location_ids and random.random() <= hint_reroll_chance:
+                        path_location_id = random.choice(hintable_location_ids)
+                        rerolls += 1
+                    globally_hinted_location_ids.append(path_location_id)
                     already_hinted_locations.append(path_location_id)
                     region = GetRegionOfLocation(path_location_id)
                     hinted_location_text = region.hint_name
@@ -764,8 +777,8 @@ def compileHints(spoiler: Spoiler):
                     # If there are no doors available (very unlikely) then just get a random one. Tough luck.
                     else:
                         hint_location = getRandomHintLocation()
-                    if path_location_id in TrainingBarrelLocations:
-                        # Training Grounds will have 4 moves - instead of being super vague we'll hint the specific item directly.
+                    if path_location_id in TrainingBarrelLocations or path_location_id in PreGivenLocations:
+                        # Starting moves could be a lot of things - instead of being super vague we'll hint the specific item directly.
                         hinted_item_name = ItemList[LocationList[path_location_id].item].name
                         message = f"Your \x05training with {hinted_item_name}\x05 is on the path to \x04{key_item.name}\x04."
                     else:
@@ -780,14 +793,21 @@ def compileHints(spoiler: Spoiler):
             path = spoiler.woth_paths[Locations.BananaHoard]
             already_chosen_krool_path_locations = []
             for i in range(hint_distribution[HintType.RequiredWinConditionHint]):
-                path_location_id = random.choice([loc for loc in path if loc not in already_chosen_krool_path_locations and loc != Locations.BananaHoard])
+                hintable_location_ids = [loc for loc in path if loc not in already_chosen_krool_path_locations and loc != Locations.BananaHoard]
+                path_location_id = random.choice(hintable_location_ids)
+                # Soft reroll duplicate hints based on hint reroll parameters
+                rerolls = 0
+                while rerolls < hint_reroll_cap and path_location_id in globally_hinted_location_ids and random.random() <= hint_reroll_chance:
+                    path_location_id = random.choice(hintable_location_ids)
+                    rerolls += 1
+                globally_hinted_location_ids.append(path_location_id)
                 already_chosen_krool_path_locations.append(path_location_id)
                 region = GetRegionOfLocation(path_location_id)
                 hinted_location_text = region.hint_name
                 # Every hint door is available before K. Rool so we can pick randomly
                 hint_location = getRandomHintLocation()
-                if path_location_id in TrainingBarrelLocations:
-                    # Training Grounds will have 4 moves - instead of being super vague we'll hint the specific item directly.
+                if path_location_id in TrainingBarrelLocations or path_location_id in PreGivenLocations:
+                    # Starting moves could be a lot of things - instead of being super vague we'll hint the specific item directly.
                     hinted_item_name = ItemList[LocationList[path_location_id].item].name
                     message = f"Your \x05training with {hinted_item_name}\x05 is on the path to \x08aiding your fight against K. Rool\x08."
                 else:
@@ -803,7 +823,14 @@ def compileHints(spoiler: Spoiler):
             path = spoiler.woth_paths[camera_location_id]
             already_chosen_camera_path_locations = []
             for i in range(hint_distribution[HintType.RequiredWinConditionHint]):
-                path_location_id = random.choice([loc for loc in path if loc not in already_chosen_camera_path_locations])
+                hintable_location_ids = [loc for loc in path if loc not in already_chosen_camera_path_locations]
+                path_location_id = random.choice(hintable_location_ids)
+                # Soft reroll duplicate hints based on hint reroll parameters
+                rerolls = 0
+                while rerolls < hint_reroll_cap and path_location_id in globally_hinted_location_ids and random.random() <= hint_reroll_chance:
+                    path_location_id = random.choice(hintable_location_ids)
+                    rerolls += 1
+                globally_hinted_location_ids.append(path_location_id)
                 already_chosen_camera_path_locations.append(path_location_id)
                 region = GetRegionOfLocation(path_location_id)
                 hinted_location_text = region.hint_name
@@ -814,8 +841,8 @@ def compileHints(spoiler: Spoiler):
                 # If there are no doors available (unlikely by now) then just get a random one. Tough luck.
                 else:
                     hint_location = getRandomHintLocation()
-                if path_location_id in TrainingBarrelLocations:
-                    # Training Grounds will have 4 moves - instead of being super vague we'll hint the specific item directly.
+                if path_location_id in TrainingBarrelLocations or path_location_id in PreGivenLocations:
+                    # Starting moves could be a lot of things - instead of being super vague we'll hint the specific item directly.
                     hinted_item_name = ItemList[LocationList[path_location_id].item].name
                     message = f"Your \x05training with {hinted_item_name}\x05 is on the path to \x07taking photos\x07."
                 else:
@@ -1027,8 +1054,12 @@ def compileHints(spoiler: Spoiler):
         hintable_location_ids = []
         for location_id in spoiler.woth_locations:
             location = LocationList[location_id]
-            # Only hint things that are in shuffled locations - don't hint training barrels because you can't know which move it refers to and don't hint the Helm Key if you know key 8 is there
-            if location.type in spoiler.settings.shuffled_location_types and location.type != Types.TrainingBarrel and not (spoiler.settings.key_8_helm and location_id == Locations.HelmKey):
+            # Only hint things that are in shuffled locations - don't hint starting moves because you can't know which move it refers to and don't hint the Helm Key if you know key 8 is there
+            if (
+                location.type in spoiler.settings.shuffled_location_types
+                and location.type not in (Types.TrainingBarrel, Types.PreGivenMove)
+                and not (spoiler.settings.key_8_helm and location_id == Locations.HelmKey)
+            ):
                 hintable_location_ids.append(location_id)
         random.shuffle(hintable_location_ids)
         placed_woth_hints = 0
@@ -1038,7 +1069,14 @@ def compileHints(spoiler: Spoiler):
                 hint_distribution[HintType.WothLocation] -= 1
                 hint_distribution[HintType.Joke] += 1
                 continue
-            hinted_loc_id = hintable_location_ids.pop()
+            hinted_loc_id = random.choice(hintable_location_ids)
+            # Soft reroll duplicate hints based on hint reroll parameters
+            rerolls = 0
+            while rerolls < hint_reroll_cap and hinted_loc_id in globally_hinted_location_ids and random.random() <= hint_reroll_chance:
+                hinted_loc_id = random.choice(hintable_location_ids)
+                rerolls += 1
+            globally_hinted_location_ids.append(hinted_loc_id)
+            hintable_location_ids.remove(hinted_loc_id)
             # Attempt to find a door that will be accessible before the location is
             hint_options = getHintLocationsForAccessibleHintItems(spoiler.accessible_hints_for_location[hinted_loc_id])
             if len(hint_options) > 0:
@@ -1207,7 +1245,7 @@ def compileHints(spoiler: Spoiler):
         hint_location.hint_type = HintType.FullShopWithItems
         UpdateHint(hint_location, message)
 
-    # No need to do anything fancy here - there's already a K. Rool hint on the player's path (the wall in Helm)
+    # No need to do anything fancy here - there's often already a K. Rool hint on the player's path (the wall in Helm)
     for i in range(hint_distribution[HintType.KRoolOrder]):
         hint_location = getRandomHintLocation()
         kong_krool_order = [kong_list[kong] for kong in spoiler.settings.krool_order]
