@@ -41,6 +41,7 @@ class Location:
         self.kong = kong
         self.logically_relevant = logically_relevant  # This is True if this location is needed to derive the logic for another location
         self.placement_index = None
+        self.inaccessible = False
         if self.type == Types.Shop:
             self.movetype = data[0]
             self.index = data[1]
@@ -80,8 +81,6 @@ class Location:
 
     def PlaceItem(self, item):
         """Place item at this location."""
-        if self.item == Items.NoItem and item != Items.NoItem:
-            print("what the fuck??")
         self.item = item
         # If we're placing a real move here, lock out mutually exclusive shop locations
         if item != Items.NoItem and self.type == Types.Shop:
