@@ -9,7 +9,7 @@ from randomizer.Patching.Lib import intf_to_float, float_to_hex, int_to_list, ge
 from randomizer.Spoiler import Spoiler
 from randomizer.Enums.Kongs import Kongs
 from randomizer.Enums.Settings import CharacterColors, ColorblindMode, HelmDoorItem, KlaptrapModel
-from randomizer.Lists.TextureTables import TextureMappingTables
+from randomizer.Lists.TextureTables import textures_7, textures_14, textures_25, TextureFormats
 from PIL import Image, ImageEnhance, ImageDraw
 from io import BytesIO
 import zlib
@@ -1691,32 +1691,37 @@ def applyHolidayMode(spoiler: Spoiler):
 def apply_texture_packs(spoiler: Spoiler):
     """Apply user-submitted textures to the ROM."""
     #TODO: find a way to only enable this function when a zip is uploaded
-    uploaded_files = []
-    for table in [7, 14, 25]:
-        #TODO: make this not shit
-        match table:
-            case 7:
-                uploaded_files = list(js.cosmetics.table7)
-            case 14:
-                uploaded_files = list(js.cosmetics.table14)
-            case 25:
-                uploaded_files = list(js.cosmetics.table25)
-        #TODO: figure out why i cant just load from assets folder
-        texture_table = TextureMappingTables[table]
-        #go through each uploaded file
-        for texture in uploaded_files:
-            print(texture[0])
-            tex_int = int(texture[0][-8:-4], 16)
-            if str(tex_int) in texture_table:
-                #TODO: check that the files are the correct size, otherwise bail. might need to be before the match:case?
-                #match:case for the file formats (just rgba5551 for now)
-                match texture_table[str(tex_int)]['format']:
-                    case 'rgba5551':
-                        im = BytesIO(bytearray(texture[1]))
-                        im_f = Image.open(im)
-                        badlywriteColorImageToROM(im_f, table, tex_int, texture_table[str(tex_int)]['dimensions'][1], texture_table[str(tex_int)]['dimensions'][0], False)
-                    case _:
-                        pass
+    if (len(list(js.cosmetics.table7)) != 0 or len(list(js.cosmetics.table14)) != 0 or len(list(js.cosmetics.table25)) != 0):
+        uploaded_files = []
+        for table in [7, 14, 25]:
+            #TODO: make this not shit
+            match table:
+                case 7:
+                    uploaded_files = list(js.cosmetics.table7)
+                    texture_table = textures_7
+                case 14:
+                    uploaded_files = list(js.cosmetics.table14)
+                    texture_table = textures_14
+                case 25:
+                    uploaded_files = list(js.cosmetics.table25)
+                    texture_table = textures_25
+            #go through each uploaded file
+            for texture in uploaded_files:
+                print(texture[0])
+                #TODO: determine if the exported format is gonna be written as its decimal number or its hex number
+                #TODO: figure out where the number is going to be written (front or back)
+                ###### OR: incorporate the name stored in the tables themselves
+                tex_int = int(texture[0][-8:-4], 16)
+                if tex_int < len(texture_table):
+                    #TODO: check that the files are the correct size, otherwise bail. might need to be before the match:case?
+                    #match:case for the file formats (just rgba5551 for now)
+                    match (texture_table[tex_int]).format:
+                        case TextureFormats.RGBA5551:
+                            im = BytesIO(bytearray(texture[1]))
+                            im_f = Image.open(im)
+                            badlywriteColorImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, False)
+                        case _:
+                            pass
                 
                     
 
