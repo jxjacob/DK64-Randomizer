@@ -87,7 +87,7 @@ document
         events = [];
         table7nam = [];
         table7tex = [];
-        table14name = [];
+        table14nam = [];
         table14tex = [];
         table25nam = [];
         table25tex = [];
