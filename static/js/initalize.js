@@ -74,6 +74,7 @@ function getFile(file) {
   }).responseText;
 }
 var cosmetics;
+var cosmetic_names;
 document
   .getElementById("music_file")
   .addEventListener("change", function (evt) {
@@ -83,8 +84,11 @@ document
       var new_zip = new JSZip();
       new_zip.loadAsync(fileLoadedEvent.target.result).then(function () {
         bgm = [];
+        bgm_names = [];
         fanfares = [];
+        fanfare_names = [];
         events = [];
+        event_names = [];
         table7nam = [];
         table7tex = [];
         table14nam = [];
@@ -97,21 +101,24 @@ document
               .file(file)
               .async("Uint8Array")
               .then(function (content) {
-                bgm.push(content);
+                bgm.push(content)
+                bgm_names.push(file.slice(0, -4))
               });
           } else if (file.includes("fanfares/") && file.slice(-4) == ".bin") {
             new_zip
               .file(file)
               .async("Uint8Array")
               .then(function (content) {
-                fanfares.push(content);
+                fanfares.push(content)
+                fanfare_names.push(file.slice(0, -4))
               });
           } else if (file.includes("events/") && file.slice(-4) == ".bin") {
             new_zip
               .file(file)
               .async("Uint8Array")
               .then(function (content) {
-                events.push(content);
+                events.push(content)
+                event_names.push(file.slice(0, -4))
               });
           } else if (file.includes("textures/table_7/") && file.slice(-4) == ".png") {
             table7nam.push(file)
@@ -140,6 +147,7 @@ document
           }
         }
         cosmetics = { bgm: bgm, fanfares: fanfares, events: events, table7: table7tex, table14: table14tex, table25: table25tex};
+        cosmetic_names = {bgm: bgm_names, fanfares: fanfare_names, events: event_names };
       });
     };
 
