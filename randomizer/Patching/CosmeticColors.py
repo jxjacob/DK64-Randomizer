@@ -9,7 +9,7 @@ from randomizer.Patching.Lib import intf_to_float, float_to_hex, int_to_list, ge
 from randomizer.Spoiler import Spoiler
 from randomizer.Enums.Kongs import Kongs
 from randomizer.Enums.Settings import CharacterColors, ColorblindMode, HelmDoorItem, KlaptrapModel
-from randomizer.Lists.TextureTables import textures_7, textures_14, textures_25, TextureFormats
+from randomizer.Lists.TextureTables import textures_7, textures_14, textures_25
 from PIL import Image, ImageEnhance, ImageDraw
 from io import BytesIO
 import zlib
@@ -587,7 +587,6 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
         data = bytearray(bytes_array)
         if len(data) > (2 * width * height):
             print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
-            #TODO: add support for autodownsizing provided image
         if table_index in (14, 25):
             data = gzip.compress(data, compresslevel=9)
         #print(f"File {table_index} :: {file_index} -- {len(data)}")
@@ -596,6 +595,65 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
             stored_downsample = int(len(im_f.getcolors())*0.9)
             an_issue=True
     ROM().writeBytes(data)
+
+def badlywriteIntensityAlphaImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
+    """Write IA images to ROM."""
+    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
+    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
+    file_size = file_end - file_start
+    ROM().seek(file_start)
+    pix = im_f.load()
+    width, height = im_f.size
+    bytes_array = []
+    halfbyte = None
+    for y in range(height):
+            for x in range(width):
+                pix_data = list(pix[x, y])
+                match format:
+                    case TextureFormat.IA4:
+                        intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 5) << 1
+                        alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
+                        # space saver lol
+                        if alpha == 0:
+                            intensity = 0
+                        value = intensity | alpha
+                        if halfbyte == None:
+                            halfbyte = value
+                        else:
+                            value = (halfbyte << 4) | value
+                            bytes_array.extend([value & 0xFF])
+                            halfbyte = None
+                    case TextureFormat.IA8:
+                        intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4) << 4
+                        alpha = int(pix_data[3]) >> 4 if len(pix_data)>3 else 15
+                        # space saver lol
+                        if alpha == 0:
+                            intensity = 0
+                        value = intensity | alpha
+                        bytes_array.extend([value & 0xFF])
+                    case TextureFormat.IA16:
+                        # genuniely cannot find documenation about this format lmao
+                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
+                        alpha = pix_data[3] if len(pix_data)>3 else 255
+                        # space saver lol
+                        if alpha == 0:
+                            intensity = 0
+                        bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
+                        pass
+    data = bytearray(bytes_array)
+    an_issue = False
+    if len(data) > (2 * width * height):
+        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+        an_issue = True
+    if table_index in (14, 25):
+        data = gzip.compress(data, compresslevel=9)
+    #print(f"File {table_index} :: {file_index} -- {len(data)}")
+    if len(data) > file_size:
+        print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
+        an_issue = True
+    if not an_issue:
+        ROM().writeBytes(data)
+
 
 def writeKasplatHairColorToROM(color, table_index, file_index, format: str):
     """Write color to ROM for kasplats."""
@@ -1737,7 +1795,6 @@ def apply_texture_packs(spoiler: Spoiler):
                     texture_table = textures_25
             #go through each uploaded file
             for texture in uploaded_files:
-                print(texture[0])
                 #TODO: determine if the exported format is gonna be written as its decimal number or its hex number
                 #TODO: figure out where the number is going to be written (front or back)
                 ###### OR: incorporate the name stored in the tables themselves
@@ -1746,10 +1803,16 @@ def apply_texture_packs(spoiler: Spoiler):
                     #TODO: check that the files are the correct size, otherwise bail. might need to be before the match:case?
                     #match:case for the file formats (just rgba5551 for now)
                     match (texture_table[tex_int]).format:
-                        case TextureFormats.RGBA5551:
+                        case TextureFormat.RGBA5551 | TextureFormat.RGBA32:
+                            print("RGBA: " + texture[0])
                             im = BytesIO(bytearray(texture[1]))
                             im_f = Image.open(im)
                             badlywriteColorImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, False)
+                        case TextureFormat.IA8 | TextureFormat.IA4:
+                            print("IA8: " + texture[0])
+                            im = BytesIO(bytearray(texture[1]))
+                            im_f = Image.open(im)
+                            badlywriteIntensityAlphaImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
                         case _:
                             pass
                 

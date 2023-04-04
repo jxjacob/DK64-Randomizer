@@ -475,8 +475,11 @@ class TextureFormat(IntEnum):
     RGBA32 = auto()
     I8 = auto()
     I4 = auto()
+    IA16 = auto()
     IA8 = auto()
     IA4 = auto()
+    CI8 = auto()
+    CI4 = auto()
 
 
 class TableNames(IntEnum):
