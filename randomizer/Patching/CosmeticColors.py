@@ -578,15 +578,19 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
                     pix_data = [0, 0, 0, 0]
                 else:
                     pix_data = list(pix[x, y])
-                red = int((pix_data[0] >> 3) << 11)
-                green = int((pix_data[1] >> 3) << 6)
-                blue = int((pix_data[2] >> 3) << 1)
-                alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
-                value = red | green | blue | alpha
-                bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
+                if format == TextureFormat.RGBA32:
+                    bytes_array.extend(pix_data)
+                else:
+                    red = int((pix_data[0] >> 3) << 11)
+                    green = int((pix_data[1] >> 3) << 6)
+                    blue = int((pix_data[2] >> 3) << 1)
+                    alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
+                    value = red | green | blue | alpha
+                    bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
         data = bytearray(bytes_array)
-        if len(data) > (2 * width * height):
-            print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+        bytes_per_px = 2 if format == TextureFormat.RGBA5551 else 4
+        if len(data) > (bytes_per_px * width * height):
+            print(f"Image too big error: {table_index} :: {file_index};       limit: {bytes_per_px * width * height}    given: {len(data)}")
         if table_index in (14, 25):
             data = gzip.compress(data, compresslevel=9)
         #print(f"File {table_index} :: {file_index} -- {len(data)}")
@@ -640,6 +644,91 @@ def badlywriteIntensityAlphaImageToROM(im_f, table_index, file_index, width, hei
                             intensity = 0
                         bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
                         pass
+    data = bytearray(bytes_array)
+    an_issue = False
+    #TODO: figure out if this calc needs to be redone for non-rgba images
+    if len(data) > (2 * width * height):
+        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+        an_issue = True
+    if table_index in (14, 25):
+        data = gzip.compress(data, compresslevel=9)
+    #print(f"File {table_index} :: {file_index} -- {len(data)}")
+    if len(data) > file_size:
+        print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
+        an_issue = True
+    if not an_issue:
+        ROM().writeBytes(data)
+
+
+
+def badlywriteIntensityImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
+    """Write I images to ROM."""
+    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
+    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
+    file_size = file_end - file_start
+    ROM().seek(file_start)
+    pix = im_f.load()
+    width, height = im_f.size
+    bytes_array = []
+    halfbyte = None
+    for y in range(height):
+            for x in range(width):
+                pix_data = list(pix[x, y])
+                match format:
+                    case TextureFormat.I4:
+                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4
+                        if halfbyte == None:
+                            halfbyte = intensity
+                        else:
+                            value = (halfbyte << 4) | intensity
+                            bytes_array.extend([value & 0xFF])
+                            halfbyte = None
+                    case TextureFormat.I8:
+                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
+                        bytes_array.extend([intensity & 0xFF])
+    data = bytearray(bytes_array)
+    an_issue = False
+    #TODO: figure out if this calc needs to be redone for non-rgba images
+    if len(data) > (2 * width * height):
+        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+        an_issue = True
+    if table_index in (14, 25):
+        data = gzip.compress(data, compresslevel=9)
+    #print(f"File {table_index} :: {file_index} -- {len(data)}")
+    if len(data) > file_size:
+        print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
+        an_issue = True
+    if not an_issue:
+        ROM().writeBytes(data)
+
+
+
+def badlywriteColorIndexImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
+    """Write CI images to ROM."""
+    #TODO: actually explore the CI format to see if I could actually just re-use the function used for I images
+    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
+    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
+    file_size = file_end - file_start
+    ROM().seek(file_start)
+    pix = im_f.load()
+    width, height = im_f.size
+    bytes_array = []
+    halfbyte = None
+    for y in range(height):
+            for x in range(width):
+                pix_data = list(pix[x, y])
+                match format:
+                    case TextureFormat.CI4:
+                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4
+                        if halfbyte == None:
+                            halfbyte = intensity
+                        else:
+                            value = (halfbyte << 4) | intensity
+                            bytes_array.extend([value & 0xFF])
+                            halfbyte = None
+                    case TextureFormat.CI8:
+                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
+                        bytes_array.extend([intensity & 0xFF])
     data = bytearray(bytes_array)
     an_issue = False
     if len(data) > (2 * width * height):
@@ -1813,6 +1902,16 @@ def apply_texture_packs(spoiler: Spoiler):
                             im = BytesIO(bytearray(texture[1]))
                             im_f = Image.open(im)
                             badlywriteIntensityAlphaImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
+                        case TextureFormat.I8 | TextureFormat.I4:
+                            print("I8: " + texture[0])
+                            im = BytesIO(bytearray(texture[1]))
+                            im_f = Image.open(im)
+                            badlywriteIntensityImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
+                        case TextureFormat.CI8 | TextureFormat.CI4:
+                            print("CI8: " + texture[0])
+                            im = BytesIO(bytearray(texture[1]))
+                            im_f = Image.open(im)
+                            badlywriteColorIndexImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
                         case _:
                             pass
                 

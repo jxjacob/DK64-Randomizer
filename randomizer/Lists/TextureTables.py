@@ -3230,7 +3230,7 @@ textures_25 = [
 	TextureFile("", TextureFormat.RGBA5551, 25, 2022, 20, 1),
 	TextureFile("", TextureFormat.Null, 25, 2023, 64, 32),
 	TextureFile("", TextureFormat.RGBA5551, 25, 2024, 20, 1),
-	TextureFile("", TextureFormat.Null, 25, 2025, 64, 64),
+	TextureFile("", TextureFormat.CI4, 25, 2025, 64, 64),
 	TextureFile("", TextureFormat.RGBA5551, 25, 2026, 20, 1),
 	TextureFile("", TextureFormat.Null, 25, 2027, 64, 64),
 	TextureFile("", TextureFormat.RGBA5551, 25, 2028, 20, 1),
