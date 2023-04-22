@@ -76,6 +76,9 @@ document
         let bgm_promises = [];
         let fanfare_promises = [];
         let event_promises = [];
+        let table7_promises = [];
+        let table14_promises = [];
+        let table25_promises = [];
 
         for (var filename of Object.keys(new_zip.files)) {
           if (filename.includes("bgm/") && filename.slice(-4) == ".bin") {
