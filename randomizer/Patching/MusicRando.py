@@ -6,12 +6,27 @@ from ast import And
 
 import js
 import randomizer.Lists.Exceptions as Ex
-from randomizer.Enums.Settings import MusicCosmetics
 from randomizer.Enums.SongType import SongType
 from randomizer.Lists.Songs import Song, SongGroup, song_data
 from randomizer.Patching.Patcher import ROM
 from randomizer.Settings import Settings
 from randomizer.Spoiler import Spoiler
+
+storage_banks = {
+    0: 0x8000,
+    1: 0x11C0,
+    2: 0x07C0,
+    3: 0x0160,
+}
+
+
+def doesSongLoop(data: bytes) -> bool:
+    """Check if song loops."""
+    byte_list = [x for xi, x in enumerate(data) if xi >= 0x44]  # Get byte list, exclude header
+    for ps in range(len(byte_list) - 3):
+        if byte_list[ps] == 0xFF and byte_list[ps + 1] == 0x2E and byte_list[ps + 2] == 0x00 and byte_list[ps + 3] == 0xFF:
+            return True
+    return False
 
 
 def insertUploaded(uploaded_songs: list, uploaded_song_names: list, target_type: SongType):
@@ -19,14 +34,38 @@ def insertUploaded(uploaded_songs: list, uploaded_song_names: list, target_type:
     added_songs = list(zip(uploaded_songs, uploaded_song_names))
     random.shuffle(added_songs)
     all_target_songs = [song for song in song_data if song.type == target_type]
-    songs_to_be_replaced = random.sample(all_target_songs, len(added_songs))
+    swap_amount = len(added_songs)
+    if swap_amount > len(all_target_songs):
+        swap_amount = len(all_target_songs)
+    songs_to_be_replaced = random.sample(all_target_songs, swap_amount)
     for index, song in enumerate(songs_to_be_replaced):
-        song_idx = song_data.index(song)
-        song_data[song_idx].output_name = added_songs[index][1]
-        entry_data = js.pointer_addresses[0]["entries"][song_idx]
-        ROM().seek(entry_data["pointing_to"])
-        zipped_data = gzip.compress(bytes(added_songs[index][0]), compresslevel=9)
-        ROM().writeBytes(zipped_data)
+        selected_bank = None
+        selected_cap = 0xFFFFFF
+        new_song_data = bytes(added_songs[index][0])
+        for bank in storage_banks:
+            if len(new_song_data) <= storage_banks[bank]:  # Song can fit in bank
+                if selected_cap > storage_banks[bank]:  # Bank size is new lowest that fits
+                    selected_bank = bank
+                    selected_cap = storage_banks[bank]
+        if selected_bank is not None:
+            song_idx = song_data.index(song)
+            # Construct new memory data based on variables
+            song_data[song_idx].memory &= 0xFEF9
+            song_data[song_idx].memory |= selected_bank << 1
+            loop = doesSongLoop(new_song_data)
+            loop_val = 0
+            if loop:
+                loop_val = 1
+            song_data[song_idx].memory |= loop_val << 8
+            # Write Song
+            song_data[song_idx].output_name = added_songs[index][1]
+            entry_data = js.pointer_addresses[0]["entries"][song_idx]
+            ROM().seek(entry_data["pointing_to"])
+            zipped_data = gzip.compress(new_song_data, compresslevel=9)
+            ROM().writeBytes(zipped_data)
+
+
+ENABLE_CHAOS = False  # Enable DK Rap everywhere
 
 
 def randomize_music(spoiler: Spoiler):
@@ -38,29 +77,29 @@ def randomize_music(spoiler: Spoiler):
     settings: Settings = spoiler.settings
     if js.document.getElementById("override_cosmetics").checked:
         if js.document.getElementById("random_music").checked:
-            spoiler.settings.music_bgm = MusicCosmetics.randomized
-            spoiler.settings.music_fanfares = MusicCosmetics.randomized
-            spoiler.settings.music_events = MusicCosmetics.randomized
+            spoiler.settings.music_bgm_randomized = True
+            spoiler.settings.music_fanfares_randomized = True
+            spoiler.settings.music_events_randomized = True
         else:
-            spoiler.settings.music_bgm = MusicCosmetics[js.document.getElementById("music_bgm").value]
-            spoiler.settings.music_fanfares = MusicCosmetics[js.document.getElementById("music_fanfares").value]
-            spoiler.settings.music_events = MusicCosmetics[js.document.getElementById("music_events").value]
+            spoiler.settings.music_bgm_randomized = js.document.getElementById("music_bgm_randomized").checked
+            spoiler.settings.music_fanfares_randomized = js.document.getElementById("music_fanfares_randomized").checked
+            spoiler.settings.music_events_randomized = js.document.getElementById("music_events_randomized").checked
     else:
         if spoiler.settings.random_music:
-            spoiler.settings.music_bgm = MusicCosmetics.randomized
-            spoiler.settings.music_fanfares = MusicCosmetics.randomized
-            spoiler.settings.music_events = MusicCosmetics.randomized
-    if spoiler.settings.music_bgm != MusicCosmetics.default or spoiler.settings.music_events != MusicCosmetics.default or spoiler.settings.music_fanfares != MusicCosmetics.default:
+            spoiler.settings.music_bgm_randomized = True
+            spoiler.settings.music_fanfares_randomized = True
+            spoiler.settings.music_events_randomized = True
+    if spoiler.settings.music_bgm_randomized or spoiler.settings.music_events_randomized or spoiler.settings.music_fanfares_randomized:
         sav = spoiler.settings.rom_data
         ROM().seek(sav + 0x12E)
         ROM().write(1)
     for song in song_data:
         song.Reset()
     # Check if we have anything beyond default set for BGM
-    if spoiler.settings.music_bgm != MusicCosmetics.default:
+    if spoiler.settings.music_bgm_randomized:
         # If the user selected standard rando
-        if spoiler.settings.music_bgm in (MusicCosmetics.randomized, MusicCosmetics.uploaded):
-            if spoiler.settings.music_bgm == MusicCosmetics.uploaded and js.cosmetics is not None and js.cosmetic_names is not None:
+        if not ENABLE_CHAOS:
+            if js.cosmetics is not None and js.cosmetic_names is not None:
                 # If uploaded, replace some songs with the uploaded songs
                 insertUploaded(list(js.cosmetics.bgm), list(js.cosmetic_names.bgm), SongType.BGM)
             # Generate the list of BGM songs
@@ -78,7 +117,7 @@ def randomize_music(spoiler: Spoiler):
                 random.shuffle(shuffled_music)
                 shuffle_music(spoiler, song_list[channel_index].copy(), shuffled_music)
         # If the user was a poor sap and selected chaos put DK rap for everything
-        elif spoiler.settings.music_bgm == MusicCosmetics.chaos:
+        else:
             # Find the DK rap in the list
             rap = js.pointer_addresses[0]["entries"][song_data.index(next((x for x in song_data if x.name == "DK Rap"), None))]
             # Find all BGM songs
@@ -104,40 +143,36 @@ def randomize_music(spoiler: Spoiler):
                 ROM().seek(0x1FFF000 + (song["index"] * 2))
                 ROM().writeMultipleBytes(song_data[rap["index"]].memory, 2)
     # If the user wants to randomize fanfares
-    if spoiler.settings.music_fanfares != MusicCosmetics.default:
-        # Check if our setting is just rando
-        if spoiler.settings.music_fanfares in (MusicCosmetics.randomized, MusicCosmetics.uploaded):
-            if spoiler.settings.music_fanfares == MusicCosmetics.uploaded and js.cosmetics is not None and js.cosmetic_names is not None:
-                # If uploaded, replace some songs with the uploaded songs
-                insertUploaded(list(js.cosmetics.fanfares), list(js.cosmetic_names.fanfares), SongType.Fanfare)
-            # Load the list of fanfares
-            fanfare_list = []
-            for song in song_data:
-                if song.type == SongType.Fanfare:
-                    fanfare_list.append(js.pointer_addresses[0]["entries"][song_data.index(song)])
-            # Shuffle the fanfare list
-            # ShuffleMusicWithSizeCheck(spoiler, fanfare_list)
-            shuffled_music = fanfare_list.copy()
-            random.shuffle(shuffled_music)
-            shuffle_music(spoiler, fanfare_list.copy(), shuffled_music)
+    if spoiler.settings.music_fanfares_randomized:
+        if js.cosmetics is not None and js.cosmetic_names is not None:
+            # If uploaded, replace some songs with the uploaded songs
+            insertUploaded(list(js.cosmetics.fanfares), list(js.cosmetic_names.fanfares), SongType.Fanfare)
+        # Load the list of fanfares
+        fanfare_list = []
+        for song in song_data:
+            if song.type == SongType.Fanfare:
+                fanfare_list.append(js.pointer_addresses[0]["entries"][song_data.index(song)])
+        # Shuffle the fanfare list
+        # ShuffleMusicWithSizeCheck(spoiler, fanfare_list)
+        shuffled_music = fanfare_list.copy()
+        random.shuffle(shuffled_music)
+        shuffle_music(spoiler, fanfare_list.copy(), shuffled_music)
 
     # If the user wants to randomize events
-    if spoiler.settings.music_events != MusicCosmetics.default:
-        # Check if our setting is just rando
-        if spoiler.settings.music_events in (MusicCosmetics.randomized, MusicCosmetics.uploaded):
-            if spoiler.settings.music_events == MusicCosmetics.uploaded and js.cosmetics is not None and js.cosmetic_names is not None:
-                # If uploaded, replace some songs with the uploaded songs
-                insertUploaded(list(js.cosmetics.events), list(js.cosmetic_names.events), SongType.Event)
-            # Load the list of events
-            event_list = []
-            for song in song_data:
-                if song.type == SongType.Event:
-                    event_list.append(js.pointer_addresses[0]["entries"][song_data.index(song)])
+    if spoiler.settings.music_events_randomized:
+        if js.cosmetics is not None and js.cosmetic_names is not None:
+            # If uploaded, replace some songs with the uploaded songs
+            insertUploaded(list(js.cosmetics.events), list(js.cosmetic_names.events), SongType.Event)
+        # Load the list of events
+        event_list = []
+        for song in song_data:
+            if song.type == SongType.Event:
+                event_list.append(js.pointer_addresses[0]["entries"][song_data.index(song)])
 
-            # Shuffle the event list
-            duped_song_list = event_list.copy()
-            random.shuffle(duped_song_list)
-            shuffle_music(spoiler, event_list.copy(), duped_song_list)
+        # Shuffle the event list
+        duped_song_list = event_list.copy()
+        random.shuffle(duped_song_list)
+        shuffle_music(spoiler, event_list.copy(), duped_song_list)
 
 
 def shuffle_music(spoiler: Spoiler, pool_to_shuffle, shuffled_list):

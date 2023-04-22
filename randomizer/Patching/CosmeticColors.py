@@ -525,14 +525,14 @@ def writeColorImageToROM(im_f, table_index, file_index, width, height, transpare
     pix = im_f.load()
     width, height = im_f.size
     bytes_array = []
-    border = 0
+    border = 1
     for y in range(height):
         for x in range(width):
             if transparent_border and ((x < border) or (y < border) or (x >= (width - border)) or (y >= (height - border))):
                 pix_data = [0, 0, 0, 0]
             else:
                 pix_data = list(pix[x, y])
-            if format == "rgba32":
+            if format == TextureFormat.RGBA32:
                 bytes_array.extend(pix_data)
             else:
                 red = int((pix_data[0] >> 3) << 11)
@@ -543,7 +543,7 @@ def writeColorImageToROM(im_f, table_index, file_index, width, height, transpare
                 bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
     data = bytearray(bytes_array)
     bytes_per_px = 2
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         bytes_per_px = 4
     if len(data) > (bytes_per_px * width * height):
         print(f"Image too big error: {table_index} > {file_index}")
@@ -783,7 +783,7 @@ def writeKasplatHairColorToROM(color, table_index, file_index, format: str):
     """Write color to ROM for kasplats."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
     mask = getRGBFromHash(color)
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         color_lst = mask.copy()
         color_lst.append(255)  # Alpha
         null_color = [0] * 4
@@ -816,7 +816,7 @@ def writeWhiteKasplatHairColorToROM(color1, color2, table_index, file_index, for
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
     mask = getRGBFromHash(color1)
     mask2 = getRGBFromHash(color2)
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         color_lst_0 = mask.copy()
         color_lst_0.append(255)
         color_lst_1 = mask2.copy()
@@ -860,7 +860,7 @@ def writeKlaptrapSkinColorToROM(color_index, table_index, file_index, format: st
     im_f = maskImage(im_f, color_index, 0, (color_index != 3))
     pix = im_f.load()
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         null_color = [0] * 4
     else:
         null_color = [0, 0]
@@ -896,7 +896,7 @@ def writeSpecialKlaptrapTextureToROM(color_index, table_index, file_index, forma
     im_f_masked = maskImage(im_f, color_index, 0, (color_index != 3))
     pix = im_f_masked.load()
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         null_color = [0] * 4
     else:
         null_color = [0, 0]
@@ -931,7 +931,7 @@ def writeSpecialKlaptrapTextureToROM(color_index, table_index, file_index, forma
 
 def calculateKlaptrapPixel(mask: list, format: str):
     """Calculate the new color for the given pixel."""
-    if format == "rgba32":
+    if format == TextureFormat.RGBA32:
         color_lst = mask.copy()
         color_lst.append(255)  # Alpha
     else:
@@ -1553,6 +1553,12 @@ def applyKrushaKong(spoiler: Spoiler):
         changeKrushaModel(spoiler.settings.krusha_kong)
         if spoiler.settings.krusha_kong == Kongs.donkey:
             fixBaboonBlasts()
+        # Orange Switches
+        switch_faces = [0xB25, 0xB1E, 0xC81, 0xC80, 0xB24]
+        base_im = getFile(25, 0xC20, True, 32, 32, TextureFormat.RGBA5551)
+        orange_im = getFile(7, 0x136, False, 32, 32, TextureFormat.RGBA5551)
+        base_im.paste(orange_im, (0, 0), orange_im)
+        writeColorImageToROM(base_im, 25, switch_faces[spoiler.settings.krusha_kong], 32, 32, False, TextureFormat.RGBA5551)
 
 
 DK_SCALE = 0.75
@@ -1722,7 +1728,7 @@ def writeMiscCosmeticChanges(spoiler: Spoiler):
     if spoiler.settings.misc_cosmetics:
         # Melon HUD
         data = {7: [0x13C, 0x147], 14: [0x5A, 0x5D], 25: [0x17B2, 0x17B2]}
-        shift = random.randint(0, 359)
+        shift = random.randint(-359, 359)
         for table in data:
             table_data = data[table]
             for img in range(table_data[0], table_data[1] + 1):
@@ -1810,9 +1816,15 @@ def numberToImage(number: int, dim: tuple):
 
 def applyHelmDoorCosmetics(spoiler: Spoiler):
     """Apply Helm Door Cosmetic Changes."""
+    crown_door_required_item = spoiler.settings.crown_door_item
+    if crown_door_required_item == HelmDoorItem.vanilla and spoiler.settings.crown_door_item_count != 4:
+        crown_door_required_item = HelmDoorItem.req_crown
+    coin_door_required_item = spoiler.settings.coin_door_item
+    if coin_door_required_item == HelmDoorItem.vanilla and spoiler.settings.coin_door_item_count != 2:
+        coin_door_required_item = HelmDoorItem.req_companycoins
     Doors = [
-        HelmDoorSetting(spoiler.settings.crown_door_item, spoiler.settings.crown_door_item_count, 6022, 6023),
-        HelmDoorSetting(spoiler.settings.coin_door_item, spoiler.settings.coin_door_item_count, 6024, 6025),
+        HelmDoorSetting(crown_door_required_item, spoiler.settings.crown_door_item_count, 6022, 6023),
+        HelmDoorSetting(coin_door_required_item, spoiler.settings.coin_door_item_count, 6024, 6025),
     ]
     Images = [
         HelmDoorImages(HelmDoorItem.req_gb, [0x155C]),

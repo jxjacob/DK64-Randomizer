@@ -8,17 +8,7 @@ if (window.location.protocol != "https:") {
     location.href = location.href.replace("http://", "https://");
   }
 }
-if (
-  location.hostname == "dev.dk64randomizer.com" ||
-  location.hostname == "dk64randomizer.com"
-) {
-  var _LTracker = _LTracker || [];
-  _LTracker.push({
-    logglyKey: "5d3aa1b3-6ef7-4bc3-80ae-778d48a571b0",
-    sendConsoleErrors: true,
-    tag: "loggly-jslogger",
-  });
-}
+
 run_python_file("ui/__init__.py");
 // Sleep function to run functions after X seconds
 async function sleep(seconds, func, args) {
@@ -82,72 +72,115 @@ document
     var fileReader = new FileReader();
     fileReader.onload = function (fileLoadedEvent) {
       var new_zip = new JSZip();
-      new_zip.loadAsync(fileLoadedEvent.target.result).then(function () {
-        bgm = [];
-        bgm_names = [];
-        fanfares = [];
-        fanfare_names = [];
-        events = [];
-        event_names = [];
-        table7nam = [];
-        table7tex = [];
-        table14nam = [];
-        table14tex = [];
-        table25nam = [];
-        table25tex = [];
-        for (var file in new_zip.files) {
-          if (file.includes("bgm/") && file.slice(-4) == ".bin") {
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                bgm.push(content)
-                bgm_names.push(file.slice(0, -4))
-              });
-          } else if (file.includes("fanfares/") && file.slice(-4) == ".bin") {
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                fanfares.push(content)
-                fanfare_names.push(file.slice(0, -4))
-              });
-          } else if (file.includes("events/") && file.slice(-4) == ".bin") {
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                events.push(content)
-                event_names.push(file.slice(0, -4))
-              });
-          } else if (file.includes("textures/table_7/") && file.slice(-4) == ".png") {
-            table7nam.push(file)
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                table7tex.push([table7nam[table7tex.length], content]);
-              });
-          } else if (file.includes("textures/table_14/") && file.slice(-4) == ".png") {
-            table14nam.push(file)
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                table14tex.push([table14nam[table14tex.length], content]);
-              });
-          } else if (file.includes("textures/table_25/") && file.slice(-4) == ".png") {
-            table25nam.push(file)
-            new_zip
-              .file(file)
-              .async("Uint8Array")
-              .then(function (content) {
-                table25tex.push([table25nam[table25tex.length], content]);
-              });
+      new_zip.loadAsync(fileLoadedEvent.target.result).then(async function () {
+        let bgm_promises = [];
+        let fanfare_promises = [];
+        let event_promises = [];
+
+        for (var filename of Object.keys(new_zip.files)) {
+          if (filename.includes("bgm/") && filename.slice(-4) == ".bin") {
+            bgm_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
+          } else if (filename.includes("fanfares/") && filename.slice(-4) == ".bin") {
+            fanfare_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
+          } else if (filename.includes("events/") && filename.slice(-4) == ".bin") {
+            event_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
+          } else if (filename.includes("textures/table_7/") && filename.slice(-4) == ".png") {
+            table7_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
+          } else if (filename.includes("textures/table_14/") && filename.slice(-4) == ".png") {
+            table14_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
+          } else if (filename.includes("textures/table_25/") && filename.slice(-4) == ".png") {
+            table25_promises.push(new Promise((resolve, reject) => {
+              var current_filename = filename;
+              new_zip
+                .file(current_filename)
+                .async("Uint8Array")
+                .then(function (content) {
+                  resolve({
+                    name: current_filename.slice(0, -4),
+                    file: content
+                  })
+                });
+            }));
           }
         }
-        cosmetics = { bgm: bgm, fanfares: fanfares, events: events, table7: table7tex, table14: table14tex, table25: table25tex};
-        cosmetic_names = {bgm: bgm_names, fanfares: fanfare_names, events: event_names };
+
+        let bgm_files = await Promise.all(bgm_promises);
+        let fanfare_files = await Promise.all(fanfare_promises);
+        let event_files = await Promise.all(event_promises);
+        let table7_files = await Promise.all(table7_promises);
+        let table14_files = await Promise.all(table14_promises);
+        let table25_files = await Promise.all(table25_promises);
+
+        let bgm = bgm_files.map(x => x.file);
+        let bgm_names = bgm_files.map(x => x.name);
+        let fanfares = fanfare_files.map(x => x.file);
+        let fanfare_names = fanfare_files.map(x => x.name);
+        let events = event_files.map(x => x.file);
+        let event_names = event_files.map(x => x.name);
+        let table7 = table7_files.map(x => x.file);
+        let table7_names = table7_files.map(x => x.name);
+        let table14 = table14_files.map(x => x.file);
+        let table14_names = table14_files.map(x => x.name);
+        let table25 = table25_files.map(x => x.file);
+        let table25_names = table25_files.map(x => x.name);
+
+        cosmetics = { bgm: bgm, fanfares: fanfares, events: events, table7: table7, table14: table14, table25: table25  };
+        cosmetic_names = {bgm: bgm_names, fanfares: fanfare_names, events: event_names, table7: table7_names, table14: table14_names, table25: table25_names };
       });
     };
 
@@ -159,9 +192,9 @@ jq = $;
 $("#form input").on("input change", function (e) {
   //This would be called if any of the input element has got a change inside the form
   var disabled = $("form").find(":input:disabled").removeAttr("disabled");
-  const data = new FormData(document.querySelector("form"));
+  data = new FormData(document.querySelector("form"));
   disabled.attr("disabled", "disabled");
-  const json = Object.fromEntries(data.entries());
+  json = Object.fromEntries(data.entries());
   for (element of document.getElementsByTagName("select")) {
     if (element.className.includes("selected")) {
       length = element.options.length;
@@ -174,14 +207,14 @@ $("#form input").on("input change", function (e) {
       json[element.name] = values;
     }
   }
-  setCookie("saved_settings", JSON.stringify(json), 30);
+  saveDataToIndexedDB("saved_settings", JSON.stringify(json));
 });
 $("#form select").on("change", function (e) {
   //This would be called if any of the input element has got a change inside the form
   var disabled = $("form").find(":input:disabled").removeAttr("disabled");
-  const data = new FormData(document.querySelector("form"));
+  data = new FormData(document.querySelector("form"));
   disabled.attr("disabled", "disabled");
-  const json = Object.fromEntries(data.entries());
+  json = Object.fromEntries(data.entries());
   for (element of document.getElementsByTagName("select")) {
     if (element.className.includes("selected")) {
       length = element.options.length;
@@ -194,66 +227,9 @@ $("#form select").on("change", function (e) {
       json[element.name] = values;
     }
   }
-  setCookie("saved_settings", JSON.stringify(json), 30);
+  saveDataToIndexedDB("saved_settings", JSON.stringify(json));
 });
 
-function setCookie(name, value, days) {
-  var expires = "";
-  if (days) {
-    var date = new Date();
-    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-    expires = "; expires=" + date.toUTCString();
-  }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/;";
-}
-function getCookie(name) {
-  var nameEQ = name + "=";
-  var ca = document.cookie.split(";");
-  for (var i = 0; i < ca.length; i++) {
-    var c = ca[i];
-    while (c.charAt(0) == " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-}
-function eraseCookie(name) {
-  document.cookie = name + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-}
-
-function load_cookies() {
-  try {
-    if (getCookie("saved_settings") != null) {
-      json = JSON.parse(getCookie("saved_settings"));
-      if (json !== null) {
-        for (var key in json) {
-          element = document.getElementsByName(key)[0];
-          if (json[key] == "True") {
-            element.checked = true;
-          } else if (json[key] == "False") {
-            element.checked = false;
-          }
-          try {
-            element.value = json[key];
-            if (element.hasAttribute("data-slider-value")) {
-              element.setAttribute("data-slider-value", json[key]);
-            }
-            if (element.className.includes("selected")) {
-              for (var i = 0; i < element.options.length; i++) {
-                element.options[i].selected =
-                  json[key].indexOf(element.options[i].value) >= 0;
-              }
-            }
-          } catch {}
-        }
-      }
-    } else {
-      load_presets();
-    }
-  } catch {
-    eraseCookie("saved_settings");
-  }
-}
-load_cookies();
 async function load_presets() {
   await pyodide.runPythonAsync(`from ui.rando_options import preset_select_changed
 preset_select_changed(None)`);
@@ -273,11 +249,14 @@ function filebox() {
     $("#rom_3").val(file.name);
     $("#rom_3").attr("placeholder", file.name);
     // Get the original fiile
-    var db = romdatabase.result;
-    var tx = db.transaction("ROMStorage", "readwrite");
-    var store = tx.objectStore("ROMStorage");
-    // Store it in the database
-    store.put({ ROM: "N64", value: file });
+    try{
+      var db = romdatabase.result;
+      var tx = db.transaction("ROMStorage", "readwrite");
+      var store = tx.objectStore("ROMStorage");
+      // Store it in the database
+      store.put({ ROM: "N64", value: file });
+    }
+    catch{}
     // Make sure we load the file into the rompatcher
     romFile = new MarcFile(file, _parseROM);
   };
@@ -296,7 +275,16 @@ var indexedDB =
 // Open (or create) the database
 var romdatabase = indexedDB.open("ROMStorage", 1);
 var seeddatabase = indexedDB.open("SeedStorage", 1);
-
+var settingsdatabase = indexedDB.open("SettingsDB", 1);
+settingsdatabase.onupgradeneeded = function () {
+  try {
+    var settingsdb = settingsdatabase.result;
+    settingsdb.createObjectStore("saved_settings");
+  } catch{}
+};
+settingsdatabase.onsuccess = function () {
+  load_data();
+};
 // Create the schema
 romdatabase.onupgradeneeded = function () {
   try {
@@ -462,7 +450,7 @@ function generate_seed(url, json, git_branch, run_id) {
               success: function (response) {
                 // Start Patching
                 event_response_data = response;
-                pyodide.runPython(
+                pyodide.runPythonAsync(
                   `
                 import js
                 from randomizer.Patching.ApplyRandomizer import patching_response
@@ -501,3 +489,86 @@ function generate_seed(url, json, git_branch, run_id) {
     },
   });
 }
+
+function saveDataToIndexedDB(key, value) {
+  try{
+    var settingsdb = settingsdatabase.result;
+    transaction = settingsdb.transaction("saved_settings", "readwrite");
+    objectStore = transaction.objectStore("saved_settings");
+    objectStore.put(value, key);
+  }
+  catch{}
+}
+
+function loadDataFromIndexedDB(key) {
+  return new Promise((resolve, reject) => {
+   try{
+      var settingsdb = settingsdatabase.result;
+      transaction = settingsdb.transaction("saved_settings", "readonly");
+      objectStore = transaction.objectStore("saved_settings");
+      request = objectStore.get(key);
+      request.onerror = function (event) {
+        reject("Transaction error: " + event.target.errorCode);
+      };
+
+      request.onsuccess = function (event) {
+        value = event.target.result;
+        console.log(value)
+        resolve(value);
+      };
+    }
+    catch{reject("Read Error")}
+  });
+}
+
+
+function load_data() {
+
+
+  try{
+    var settingsdb = settingsdatabase.result;
+    transaction = settingsdb.transaction("saved_settings", "readonly");
+    objectStore = transaction.objectStore("saved_settings");
+    getRequest = objectStore.get("saved_settings");
+    getRequest.onerror = function(event) {
+      console.error("Failed to retrieve saved settings");
+    };
+    getRequest.onsuccess = function(event) {
+      try{
+        if (getRequest.result) {
+          json = JSON.parse(getRequest.result);
+          if (json !== null) {
+            for (var key in json) {
+              element = document.getElementsByName(key)[0];
+              if (json[key] == "True") {
+                element.checked = true;
+              } else if (json[key] == "False") {
+                element.checked = false;
+              }
+              try {
+                element.value = json[key];
+                if (element.hasAttribute("data-slider-value")) {
+                  element.setAttribute("data-slider-value", json[key]);
+                }
+                if (element.className.includes("selected")) {
+                  for (var i = 0; i < element.options.length; i++) {
+                    element.options[i].selected =
+                      json[key].indexOf(element.options[i].value) >= 0;
+                  }
+                }
+              } catch {}
+            }
+          }
+        } else {
+          load_presets();
+        }
+      }
+      catch{load_presets();}
+    };
+  }
+  catch{
+    load_presets();
+  }
+
+}
+load_data();

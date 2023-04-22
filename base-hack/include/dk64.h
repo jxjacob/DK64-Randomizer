@@ -172,6 +172,7 @@ extern void displayImageOnObject(int obj_id, int position, int image_index, int 
 extern void drawNumberObject(int model, int unk2, int image_index, int unk4);
 extern int isLobby(maps map);
 extern float determineXRatioMovement(unsigned int unk);
+extern float determineZRatioMovement(unsigned int unk);
 extern int countFlagArray(int starting_flag, int count, int flagType);
 extern int canHitSwitch(void);
 extern void setSomeTimer(int model2_type);
@@ -268,6 +269,9 @@ extern void GoldenBananaCode(void);
 
 extern void unkSpriteRenderFunc(int unk0);
 extern void unkSpriteRenderFunc_0(void);
+extern void unkSpriteRenderFunc_1(int unk0);
+extern void unkSpriteRenderFunc_2(int unk0);
+extern void unkSpriteRenderFunc_3(int unk0);
 extern void loadSpriteFunction(int func);
 extern void displaySpriteAtXYZ(void* sprite, int scale, float x, float y, float z);
 extern void* getHUDSprite(int item);
@@ -341,6 +345,16 @@ extern void resetKongVars(void);
 extern void handleAnimation(void* actor);
 
 extern int CanDive(void);
+extern void unkTextFunction(void* actor);
+extern void homing_code(int bitfield, void* actor, int unk0, int unk1);
+extern int madeContact(void);
+extern int madeGroundContact(void);
+extern void unkProjectileCode_0(void* actor, int unk0);
+extern void unkProjectileCode_1(void* actor, int unk0, int unk1, int unk2, int unk3, int unk4);
+extern void allocateBone(void* actor, int unk0, int unk1, int unk2, int unk3);
+extern void unkProjectileCode_2(void* actor);
+extern void unkProjectileCode_3(void* actor, int unk0);
+extern void unkProjectileCode_4(void* actor, int sfx, int unk0, int unk1, int unk2);
 
 //vanilla data
 extern float TransitionSpeed;
@@ -666,3 +680,4 @@ extern char KrushaSlot;
 extern unsigned char TextItemName;
 extern unsigned char RandomSwitches;
 extern unsigned char SwitchLevel[7];
+extern unsigned char MMMEnemiesBrightened;

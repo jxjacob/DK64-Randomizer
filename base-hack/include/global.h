@@ -152,6 +152,7 @@ extern void beaverExtraHitHandle(void);
 extern void CBDing(void);
 extern void handleSpiderTrapCode(void);
 extern void HandleSpiderSilkSpawn(void);
+extern void SpiderBossExtraCode(void);
 extern void fastWarpShockwaveFix(void);
 extern int fixDilloTNTPads(void* actor);
 extern int canPlayJetpac(void);
@@ -206,6 +207,9 @@ extern void parseCutsceneData(void);
 extern void adjustAnimationTables(void);
 extern void adaptKrushaZBAnimation_PunchOStand(int action, void* player, int player_index);
 extern void adaptKrushaZBAnimation_Charge(actorData* actor, int anim);
+extern void OrangeGunCode(void);
+extern void changeFeatherToSprite(void);
+extern void setActorDamage(int actor, int new_damage);
 extern void updateCutsceneModels(actorData* actor, int size);
 extern void* DiddySwimFix(int ptr, int file, int c0, int c1);
 extern void updateUnderwaterCollisions(actorData* player, int anim, int unk0, int unk1);
@@ -240,6 +244,7 @@ extern int countFlagsDuplicate(int start, int count, flagtypes type);
 extern int getKongFromBonusFlag(int flag);
 extern void banana_medal_acquisition(int flag);
 extern void finalizeBeatGame(void);
+extern void exitTrapBubbleController(void);
 
 extern int getFlagIndex_Corrected(int start, int level);
 extern int getBPItem(int index);
@@ -317,6 +322,7 @@ extern void fixCrownEntrySKong(playerData* player, int animation);
 
 extern void wipeHintCache(void);
 extern void spawnWrinklyWrapper(behaviour_data* behaviour, int index, int kong, int unk0);
+extern void initPathExpansion(void);
 
 extern int initFile_hasGun(int kong);
 extern int initFile_hasInstrument(int kong);
@@ -336,6 +342,9 @@ extern void helmTime_exitRace(void);
 extern void helmTime_exitLevel(void);
 extern void helmTime_exitBoss(void);
 extern void helmTime_exitKRool(void);
+
+extern void loadSingularHook(int write_address, void* hook_jump);
+extern void writeFunction(int write_address, void* new_function);
 
 extern unsigned int cs_skip_db[432];
 extern bonus_barrel_info bonus_data[95];
