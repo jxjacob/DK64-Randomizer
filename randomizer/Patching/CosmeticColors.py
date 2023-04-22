@@ -600,8 +600,18 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
             an_issue=True
     ROM().writeBytes(data)
 
-def badlywriteIntensityAlphaImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
-    """Write IA images to ROM."""
+formatbits = {
+    TextureFormat.IA16: [8,8],
+    TextureFormat.IA8: [4,4],
+    TextureFormat.IA4: [3,1],
+    TextureFormat.I8: [8,0],
+    TextureFormat.I4: [4,0],
+    TextureFormat.CI8: [8,0],
+    TextureFormat.CI4: [4,0]
+}
+
+def badlywriteIntensityImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
+    """Write IA/I/CI images to ROM."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
     file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
     file_size = file_end - file_start
@@ -610,40 +620,65 @@ def badlywriteIntensityAlphaImageToROM(im_f, table_index, file_index, width, hei
     width, height = im_f.size
     bytes_array = []
     halfbyte = None
+    theformat = formatbits[format]
     for y in range(height):
             for x in range(width):
                 pix_data = list(pix[x, y])
-                match format:
-                    case TextureFormat.IA4:
-                        intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 5) << 1
-                        alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
-                        # space saver lol
-                        if alpha == 0:
-                            intensity = 0
-                        value = intensity | alpha
-                        if halfbyte == None:
+                ########
+                intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> (8 - theformat[0])) << theformat[1]
+                if format == TextureFormat.IA16 or format == TextureFormat.IA8 or format == TextureFormat.IA4:
+                    if (theformat[1] > 1):
+                        alpha = int(pix_data[3]) >> (8 - theformat[1]) if len(pix_data)>3 else (2^(theformat[1]) - 1)
+                    else:
+                        alpha = int(pix_data[3] != 0) if len(pix_data)>3 else (2^(theformat[1]) - 1)
+                    # space saver lol
+                    if alpha == 0:
+                        intensity = 0
+                    value = intensity | alpha
+                else:
+                    value = intensity
+                if format == TextureFormat.I4 or format == TextureFormat.IA4 or format == TextureFormat.CI4:
+                    if halfbyte == None:
                             halfbyte = value
-                        else:
-                            value = (halfbyte << 4) | value
-                            bytes_array.extend([value & 0xFF])
-                            halfbyte = None
-                    case TextureFormat.IA8:
-                        intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4) << 4
-                        alpha = int(pix_data[3]) >> 4 if len(pix_data)>3 else 15
-                        # space saver lol
-                        if alpha == 0:
-                            intensity = 0
-                        value = intensity | alpha
+                    else:
+                        value = (halfbyte << 4) | value
                         bytes_array.extend([value & 0xFF])
-                    case TextureFormat.IA16:
-                        # genuniely cannot find documenation about this format lmao
-                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
-                        alpha = pix_data[3] if len(pix_data)>3 else 255
-                        # space saver lol
-                        if alpha == 0:
-                            intensity = 0
-                        bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
-                        pass
+                        halfbyte = None
+                elif format == TextureFormat.IA16:
+                    bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
+                else:
+                    bytes_array.extend([value & 0xFF])
+                ########
+                # match format:
+                #     case TextureFormat.IA4:
+                #         intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 5) << 1
+                #         alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
+                #         # space saver lol
+                #         if alpha == 0:
+                #             intensity = 0
+                #         value = intensity | alpha
+                #         if halfbyte == None:
+                #             halfbyte = value
+                #         else:
+                #             value = (halfbyte << 4) | value
+                #             bytes_array.extend([value & 0xFF])
+                #             halfbyte = None
+                #     case TextureFormat.IA8:
+                #         intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4) << 4
+                #         alpha = int(pix_data[3]) >> 4 if len(pix_data)>3 else 15
+                #         # space saver lol
+                #         if alpha == 0:
+                #             intensity = 0
+                #         value = intensity | alpha
+                #         bytes_array.extend([value & 0xFF])
+                #     case TextureFormat.IA16:
+                #         # genuniely cannot find documenation about this format lmao
+                #         intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
+                #         alpha = pix_data[3] if len(pix_data)>3 else 255
+                #         # space saver lol
+                #         if alpha == 0:
+                #             intensity = 0
+                #         bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
     data = bytearray(bytes_array)
     an_issue = False
     #TODO: figure out if this calc needs to be redone for non-rgba images
@@ -661,7 +696,7 @@ def badlywriteIntensityAlphaImageToROM(im_f, table_index, file_index, width, hei
 
 
 
-def badlywriteIntensityImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
+def badlywriteIntensityOLDImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
     """Write I images to ROM."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
     file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
@@ -1893,25 +1928,25 @@ def apply_texture_packs(spoiler: Spoiler):
                     #match:case for the file formats (just rgba5551 for now)
                     match (texture_table[tex_int]).format:
                         case TextureFormat.RGBA5551 | TextureFormat.RGBA32:
-                            print("RGBA: " + texture[0])
+                            print(f"C - {(texture_table[tex_int]).format.name}: {texture[0]}")
                             im = BytesIO(bytearray(texture[1]))
                             im_f = Image.open(im)
                             badlywriteColorImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, False)
-                        case TextureFormat.IA8 | TextureFormat.IA4:
-                            print("IA8: " + texture[0])
-                            im = BytesIO(bytearray(texture[1]))
-                            im_f = Image.open(im)
-                            badlywriteIntensityAlphaImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
-                        case TextureFormat.I8 | TextureFormat.I4:
-                            print("I8: " + texture[0])
+                        case TextureFormat.IA8 | TextureFormat.IA4 | TextureFormat.IA16 | TextureFormat.I8 | TextureFormat.I4 | TextureFormat.CI8 | TextureFormat.CI4:
+                            print(f"I - {(texture_table[tex_int]).format.name}: {texture[0]}")
                             im = BytesIO(bytearray(texture[1]))
                             im_f = Image.open(im)
                             badlywriteIntensityImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
-                        case TextureFormat.CI8 | TextureFormat.CI4:
-                            print("CI8: " + texture[0])
-                            im = BytesIO(bytearray(texture[1]))
-                            im_f = Image.open(im)
-                            badlywriteColorIndexImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
+                        # case TextureFormat.I8 | TextureFormat.I4:
+                        #     print("I8: " + texture[0])
+                        #     im = BytesIO(bytearray(texture[1]))
+                        #     im_f = Image.open(im)
+                        #     badlywriteIntensityImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
+                        # case TextureFormat.CI8 | TextureFormat.CI4:
+                        #     print("CI8: " + texture[0])
+                        #     im = BytesIO(bytearray(texture[1]))
+                        #     im_f = Image.open(im)
+                        #     badlywriteColorIndexImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
                         case _:
                             pass
                 
