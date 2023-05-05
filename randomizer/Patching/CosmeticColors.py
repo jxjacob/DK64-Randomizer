@@ -554,7 +554,6 @@ def writeColorImageToROM(im_f, table_index, file_index, width, height, transpare
     ROM().writeBytes(data)
 
 
-
 def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, transparent_border: bool):
     """Write texture to ROM. Is also bodged for autocompression."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
@@ -565,7 +564,7 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
     an_issue = True
     while an_issue:
         an_issue = False
-        #TODO: actually make the autocompress not crash the video game
+        # TODO: actually make the autocompress not crash the video game
         if stored_downsample != 0:
             im_f = im_f.convert("P", palette=Image.ADAPTIVE, colors=stored_downsample)
             im_f = im_f.convert("RGBA")
@@ -584,7 +583,7 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
                     red = int((pix_data[0] >> 3) << 11)
                     green = int((pix_data[1] >> 3) << 6)
                     blue = int((pix_data[2] >> 3) << 1)
-                    alpha = int(pix_data[3] != 0) if len(pix_data)>3 else 1
+                    alpha = int(pix_data[3] != 0) if len(pix_data) > 3 else 1
                     value = red | green | blue | alpha
                     bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
         data = bytearray(bytes_array)
@@ -593,22 +592,25 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
             print(f"Image too big error: {table_index} :: {file_index};       limit: {bytes_per_px * width * height}    given: {len(data)}")
         if table_index in (14, 25):
             data = gzip.compress(data, compresslevel=9)
-        #print(f"File {table_index} :: {file_index} -- {len(data)}")
-        if len(data) > file_size:
+        # for safety reasons, the file must be strictly smaller in tables 14 and 25
+        if (len(data) >= file_size) and table_index in (14, 25) or (len(data) > file_size) and table_index in (7):
             print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
-            stored_downsample = int(len(im_f.getcolors())*0.9)
-            an_issue=True
+            stored_downsample = int(len(im_f.getcolors()) * 0.9)
+            an_issue = True
     ROM().writeBytes(data)
 
+
+# format: [intensity_bits, alpha_bits]
 formatbits = {
-    TextureFormat.IA16: [8,8],
-    TextureFormat.IA8: [4,4],
-    TextureFormat.IA4: [3,1],
-    TextureFormat.I8: [8,0],
-    TextureFormat.I4: [4,0],
-    TextureFormat.CI8: [8,0],
-    TextureFormat.CI4: [4,0]
+    TextureFormat.IA16: [8, 8],
+    TextureFormat.IA8: [4, 4],
+    TextureFormat.IA4: [3, 1],
+    TextureFormat.I8: [8, 0],
+    TextureFormat.I4: [4, 0],
+    TextureFormat.CI8: [8, 0],
+    TextureFormat.CI4: [4, 0],
 }
+
 
 def badlywriteIntensityImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
     """Write IA/I/CI images to ROM."""
@@ -622,124 +624,42 @@ def badlywriteIntensityImageToROM(im_f, table_index, file_index, width, height, 
     halfbyte = None
     theformat = formatbits[format]
     for y in range(height):
-            for x in range(width):
-                pix_data = list(pix[x, y])
-                intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> (8 - theformat[0])) << theformat[1]
-                if format == TextureFormat.IA16 or format == TextureFormat.IA8 or format == TextureFormat.IA4:
-                    if (theformat[1] > 1):
-                        alpha = int(pix_data[3]) >> (8 - theformat[1]) if len(pix_data)>3 else (2^(theformat[1]) - 1)
-                    else:
-                        alpha = int(pix_data[3] != 0) if len(pix_data)>3 else (2^(theformat[1]) - 1)
-                    # space saver lol
-                    if alpha == 0:
-                        intensity = 0
-                    value = intensity | alpha
+        for x in range(width):
+            pix_data = list(pix[x, y])
+            intensity = int(int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> (8 - theformat[0])) << theformat[1]
+            if format == TextureFormat.IA16 or format == TextureFormat.IA8 or format == TextureFormat.IA4:
+                alpha = int(pix_data[3]) >> (8 - theformat[1]) if len(pix_data) > 3 else (2 ^ (theformat[1]) - 1)
+                # space saver lol
+                if alpha == 0:
+                    intensity = 0
+                value = intensity | alpha
+            else:
+                value = intensity
+            if format == TextureFormat.I4 or format == TextureFormat.IA4 or format == TextureFormat.CI4:
+                if halfbyte is None:
+                    halfbyte = value
                 else:
-                    value = intensity
-                if format == TextureFormat.I4 or format == TextureFormat.IA4 or format == TextureFormat.CI4:
-                    if halfbyte == None:
-                            halfbyte = value
-                    else:
-                        value = (halfbyte << 4) | value
-                        bytes_array.extend([value & 0xFF])
-                        halfbyte = None
-                elif format == TextureFormat.IA16:
-                    bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
-                else:
+                    value = (halfbyte << 4) | value
                     bytes_array.extend([value & 0xFF])
+                    halfbyte = None
+            elif format == TextureFormat.IA16:
+                bytes_array.extend([intensity & 0xFF, alpha & 0xFF])
+            else:
+                bytes_array.extend([value & 0xFF])
     data = bytearray(bytes_array)
     an_issue = False
-    #TODO: figure out if this calc needs to be redone for non-rgba images
-    if len(data) > (2 * width * height):
-        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
+    if format == TextureFormat.I4 or format == TextureFormat.IA4 or format == TextureFormat.CI4:
+        bytes_per_px = 0.5
+    elif format == TextureFormat.I8 or format == TextureFormat.IA8 or format == TextureFormat.CI8:
+        bytes_per_px = 1
+    else:
+        bytes_per_px = 2
+    if len(data) > (bytes_per_px * width * height):
+        print(f"Image too big error: {table_index} :: {file_index};       limit: {bytes_per_px * width * height}    given: {len(data)}")
         an_issue = True
     if table_index in (14, 25):
         data = gzip.compress(data, compresslevel=9)
-    #print(f"File {table_index} :: {file_index} -- {len(data)}")
-    if len(data) > file_size:
-        print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
-        an_issue = True
-    if not an_issue:
-        ROM().writeBytes(data)
-
-
-
-def badlywriteIntensityOLDImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
-    """Write I images to ROM."""
-    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
-    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
-    file_size = file_end - file_start
-    ROM().seek(file_start)
-    pix = im_f.load()
-    width, height = im_f.size
-    bytes_array = []
-    halfbyte = None
-    for y in range(height):
-            for x in range(width):
-                pix_data = list(pix[x, y])
-                match format:
-                    case TextureFormat.I4:
-                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4
-                        if halfbyte == None:
-                            halfbyte = intensity
-                        else:
-                            value = (halfbyte << 4) | intensity
-                            bytes_array.extend([value & 0xFF])
-                            halfbyte = None
-                    case TextureFormat.I8:
-                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
-                        bytes_array.extend([intensity & 0xFF])
-    data = bytearray(bytes_array)
-    an_issue = False
-    #TODO: figure out if this calc needs to be redone for non-rgba images
-    if len(data) > (2 * width * height):
-        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
-        an_issue = True
-    if table_index in (14, 25):
-        data = gzip.compress(data, compresslevel=9)
-    #print(f"File {table_index} :: {file_index} -- {len(data)}")
-    if len(data) > file_size:
-        print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
-        an_issue = True
-    if not an_issue:
-        ROM().writeBytes(data)
-
-
-
-def badlywriteColorIndexImageToROM(im_f, table_index, file_index, width, height, format: TextureFormat):
-    """Write CI images to ROM."""
-    #TODO: actually explore the CI format to see if I could actually just re-use the function used for I images
-    file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
-    file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
-    file_size = file_end - file_start
-    ROM().seek(file_start)
-    pix = im_f.load()
-    width, height = im_f.size
-    bytes_array = []
-    halfbyte = None
-    for y in range(height):
-            for x in range(width):
-                pix_data = list(pix[x, y])
-                match format:
-                    case TextureFormat.CI4:
-                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3) >> 4
-                        if halfbyte == None:
-                            halfbyte = intensity
-                        else:
-                            value = (halfbyte << 4) | intensity
-                            bytes_array.extend([value & 0xFF])
-                            halfbyte = None
-                    case TextureFormat.CI8:
-                        intensity = int((pix_data[0] + pix_data[1] + pix_data[2]) / 3)
-                        bytes_array.extend([intensity & 0xFF])
-    data = bytearray(bytes_array)
-    an_issue = False
-    if len(data) > (2 * width * height):
-        print(f"Image too big error: {table_index} :: {file_index};       limit: {2 * width * height}    given: {len(data)}")
-        an_issue = True
-    if table_index in (14, 25):
-        data = gzip.compress(data, compresslevel=9)
-    #print(f"File {table_index} :: {file_index} -- {len(data)}")
+    # print(f"File {table_index} :: {file_index} -- {len(data)}")
     if len(data) > file_size:
         print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
         an_issue = True
@@ -1882,11 +1802,11 @@ def applyHolidayMode(spoiler: Spoiler):
 
 def apply_texture_packs(spoiler: Spoiler):
     """Apply user-submitted textures to the ROM."""
-    #TODO: find a way to only enable this function when a zip is uploaded
-    if (len(list(js.cosmetics.table7)) != 0 or len(list(js.cosmetics.table14)) != 0 or len(list(js.cosmetics.table25)) != 0):
+    # TODO: find a way to only enable this function when a zip is uploaded
+    if len(list(js.cosmetics.table7)) != 0 or len(list(js.cosmetics.table14)) != 0 or len(list(js.cosmetics.table25)) != 0:
         uploaded_files = []
         for table in [7, 14, 25]:
-            #TODO: make this not shit
+            # TODO: make this not shit
             match table:
                 case 7:
                     uploaded_files = list(js.cosmetics.table7)
@@ -1900,11 +1820,11 @@ def apply_texture_packs(spoiler: Spoiler):
                     uploaded_files = list(js.cosmetics.table25)
                     uploaded_names = list(js.cosmetic_names.table25)
                     texture_table = textures_25
-            #go through each uploaded file
+            # go through each uploaded file
             for idx, texture in enumerate(uploaded_files):
-                #TODO: determine if the exported format is gonna be written as its decimal number or its hex number
-                #TODO: figure out where the number is going to be written (front or back)
-                ###### OR: incorporate the name stored in the tables themselves
+                # TODO: determine if the exported format is gonna be written as its decimal number or its hex number
+                # TODO: figure out where the number is going to be written (front or back)
+                # OR: incorporate the name stored in the tables themselves
                 tex_int = int((uploaded_names[idx])[-4:], 16)
                 if tex_int < len(texture_table):
                     match (texture_table[tex_int]).format:
@@ -1920,9 +1840,6 @@ def apply_texture_packs(spoiler: Spoiler):
                             badlywriteIntensityImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, (texture_table[tex_int]).format)
                         case _:
                             pass
-                
-                    
-
 
 
 boot_phrases = (
