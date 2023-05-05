@@ -109,6 +109,7 @@ extern float getAnimationTimer(void* actor);
 extern int getPadGravity(void* actor);
 extern void BananaMedalGet(void);
 extern void CrownGet(void);
+extern void updateModel(void* data);
 
 extern void cancelMusic(int song, int unk0);
 extern void removeGorillaGone(void* actor);
@@ -188,6 +189,7 @@ extern void updateObjectScript(void* behaviour_pointer);
 extern void executeBehaviourScript(void* behaviour_pointer, int unk0);
 extern void* loadCounterFontTexture(int texture_base, void* write_location, int position, int texture_offset, int width);
 extern void delayedObjectModel2Change(maps map, int model2_id, int state);
+extern int isObjectLoadedInMap(maps map, int model2_id, int state);
 extern void cycleRNG(void);
 extern void voidWarp(void);
 extern void setToeTexture(void* actor, int data);
@@ -256,6 +258,7 @@ extern int getRefillCount(int item, int player);
 extern int doAllKongsHaveMove(shop_paad* paad, int unk0);
 extern void getSequentialPurchase(shop_paad* paad, KongBase* movedata);
 extern int ReadFile(int data, int kong, int level, int file);
+extern void SaveToFile(int data, int kong, int level, int file, int value);
 extern int* printText(int* dl, short x, short y, float scale, char* str);
 extern int* printOutOfCounter(int x, int y, int top, int bottom, int* dl, int unk0, int scale);
 
@@ -356,6 +359,13 @@ extern void unkProjectileCode_2(void* actor);
 extern void unkProjectileCode_3(void* actor, int unk0);
 extern void unkProjectileCode_4(void* actor, int sfx, int unk0, int unk1, int unk2);
 
+extern void wipeGlobalFlags(void);
+extern void setIntroStoryPlaying(int value);
+
+extern void alterSFXVolume(int channel, int volume);
+extern void alterMusicVolume(int channel);
+extern void adjustSFXType_Internal(int subtype);
+
 //vanilla data
 extern float TransitionSpeed;
 extern char CutsceneWillPlay;
@@ -403,6 +413,7 @@ extern float PositionFloatWarps[3];
 extern unsigned short PositionFacingAngle;
 extern char ChimpyCam;
 extern char ScreenRatio;
+extern char SoundType;
 extern int* CurrentActorPointer;
 extern char LoadedActorCount;
 extern loadedActorArr LoadedActorArray[64];
@@ -440,6 +451,7 @@ extern unsigned int PauseTimestampMinor;
 extern unsigned int HelmStartTimestampMajor;
 extern unsigned int HelmStartTimestampMinor;
 extern int HelmStartTime;
+extern int HelmCurrentTime;
 extern short HelmMinigameFlags[10];
 extern short p1PressedButtons;
 extern short p1HeldButtons;
@@ -478,6 +490,8 @@ extern char TransitionType;
 extern char DKTVKong;
 extern cutsceneType CutsceneBanks[2];
 extern int EEPROMType;
+extern unsigned char ReverseMillLeverOrder[5];
+extern unsigned char ReverseCryptLeverOrder[3];
 
 extern short MapVoid_MinX;
 extern short MapVoid_MinZ;
@@ -528,6 +542,7 @@ extern purchase_struct FunkyMoves[5][7];
 extern short LobbiesArray[8];
 extern short WorldArray[8];
 extern short WorldExitArray[8];
+extern short WorldCutsceneArray[8];
 extern race_exit_struct RaceExitArray[8];
 
 extern short BossMapArray[8];
@@ -631,6 +646,9 @@ extern hitbox_master_struct* ModelTwoHitboxPointer;
 extern item_collision* MiscHitboxPointer;
 extern rgb BlueprintLargeImageColors[16];
 
+extern char SFXVolume;
+extern char MusicVolume;
+
 //hack data
 extern int TestVariable;
 extern char LoadedHooks;
@@ -681,3 +699,4 @@ extern unsigned char TextItemName;
 extern unsigned char RandomSwitches;
 extern unsigned char SwitchLevel[7];
 extern unsigned char MMMEnemiesBrightened;
+extern int ExtraSaveData[0x100];

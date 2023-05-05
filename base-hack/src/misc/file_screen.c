@@ -666,15 +666,28 @@ void giveCollectables(void) {
 	for (int instrument_kong = 0; instrument_kong < 5; instrument_kong++) {
 		MovesBase[instrument_kong].instrument_energy = energy;
 	}
-	int mult = 1;
-	if (MovesBase[0].ammo_belt > 0) {
-		mult = 2 * MovesBase[0].ammo_belt;
-	}
 	CollectableBase.Health = CollectableBase.Melons * 4;
-	CollectableBase.StandardAmmo = 25 * mult;
+	CollectableBase.StandardAmmo = 25 * (1 << MovesBase[0].ammo_belt);
 	CollectableBase.Oranges = 10;
 	CollectableBase.Crystals = 1500;
 	CollectableBase.Film = 5;
+}
+
+void wipeFileStats(void) {
+	for (int i = 0; i < 9; i++) {
+		ResetExtraData(EGD_LEVELIGT, i);
+	}
+	for (int i = 0; i < STAT_TERMINATOR; i++) {
+		// Reset Statistics
+		ResetExtraData(EGD_BONUSSTAT, i);
+	}
+	for (int i = 0; i < 5; i++) {
+		ResetExtraData(EGD_KONGIGT, i);
+	}
+	for (int i = 0; i < 8; i++) {
+		ResetExtraData(EGD_FILENAME, i);
+	}
+	ResetExtraData(EGD_HELMHURRYIGT, 0);
 }
 
 void file_progress_screen_code(actorData* actor, int buttons) {
@@ -717,19 +730,12 @@ void file_progress_screen_code(actorData* actor, int buttons) {
 					if (Rando.quality_of_life.caves_kosha_dead) {
 						setPermFlag(FLAG_MODIFIER_KOSHADEAD); // Giant Kosha Dead
 					}
+					if (checkFlag(FLAG_COLLECTABLE_LLAMAGB, FLAGTYPE_PERMANENT)) {
+						setPermFlag(FLAG_MODIFIER_LLAMAFREE); // No item check
+					}
 					pre_turn_keys();
-					if (Rando.helm_hurry_mode) {
-						QueueHelmTimer = 1;
-					}
-					setPermFlag(FLAG_ESCAPE);
 					Character = Rando.starting_kong;
-					StoredSettings.file_extra.location_sss_purchased = 0;
-					StoredSettings.file_extra.location_ab1_purchased = 0;
-					StoredSettings.file_extra.location_ug1_purchased = 0;
-					StoredSettings.file_extra.location_mln_purchased = 0;
-					for (int i = 0; i < 9; i++) {
-						StoredSettings.file_extra.level_igt[i] = 0;
-					}
+					wipeFileStats();
 					if (checkFlag(FLAG_ARCADE_ROUND1, FLAGTYPE_PERMANENT)) {
 						setPermFlag(FLAG_ARCADE_LEVER);
 					}
@@ -739,10 +745,14 @@ void file_progress_screen_code(actorData* actor, int buttons) {
 					Character = Rando.starting_kong;
 					determineStartKong_PermaLossMode();
 					giveCollectables();
-					if (Rando.helm_hurry_mode) {
-						setFlag(FLAG_LOADED_GAME_OVER,1,FLAGTYPE_PERMANENT);
-					}
 				}
+				if (ENABLE_FILENAME) {
+					writeDefaultFilename();
+				}
+				if ((Rando.helm_hurry_mode) && (!ReadFile(DATA_HELMHURRYOFF, 0, 0, 0))) {
+					QueueHelmTimer = 1;
+				}
+				setKongIgt();
 				ForceStandardAmmo = 0;
 			} else if (buttons & 2) { // B
 				playSFX(0x2C9);
@@ -781,6 +791,9 @@ int* displayInverted(int* dl, int style, int x, int y, char* str, int unk0) {
 	 * 
 	 * @return New Display List Address
 	 */
+	if (InvertedControls > 1) {
+		InvertedControls = 1;
+	}
 	return displayText(dl, style, x, y, inverted_controls_str[(int)InvertedControls], unk0);
 }
 
@@ -815,15 +828,20 @@ int updateLevelIGT(void) {
 	 * 
 	 * @return New in-game time
 	 */
+	saveHelmHurryTime();
 	int new_igt = getNewSaveTime();
-	int sum = 0;
-	for (int i = 0; i < 9; i++) {
-		sum += StoredSettings.file_extra.level_igt[i];
-	}
-	int diff = new_igt - sum;
-	int world = getWorld(previous_map_save, 1);
-	if (world < 9) {
-		StoredSettings.file_extra.level_igt[world] += diff;
+	if (canSaveHelmHurry()) {
+		int sum = 0;
+		for (int i = 0; i < 9; i++) {
+			int value = ReadExtraData(EGD_LEVELIGT, i);
+			sum += value; 
+		}
+		int diff = new_igt - sum;
+		int world = getWorld(previous_map_save, 1);
+		if (world < 9) {
+			int old = ReadExtraData(EGD_LEVELIGT, world);
+			SaveExtraData(EGD_LEVELIGT, world, old + diff);
+		}
 	}
 	previous_map_save = CurrentMap;
 	SaveToGlobal();

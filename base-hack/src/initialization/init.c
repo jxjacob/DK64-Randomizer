@@ -198,6 +198,7 @@ void initHack(int source) {
 			// Kong Rando
 			initKongRando();
 			initFiles();
+			writeFunction(0x8060CB7C, &fixChimpyCamBug);
             
 			if (Rando.no_health_refill) {
 				*(int*)(0x80683A34) = 0; // Cancel Tag Health Refill
@@ -253,6 +254,8 @@ void initHack(int source) {
 			// Place Move Data
 			moveTransplant();
 			priceTransplant();
+
+			initStatistics();
 			if (Rando.disable_boss_kong_check) {
 				*(int*)(0x8064EC00) = 0x24020001;
 			}
@@ -292,7 +295,9 @@ void initHack(int source) {
 				*(int*)(0x80713CD8) = 0; // Prevent Shutdown Song Playing
 				*(short*)(0x8071256A) = 15; // Init Helm Timer = 15 minutes
 				writeFunction(0x807125A4, &initHelmHurry); // Change write
+				writeFunction(0x80713DE0, &finishHelmHurry); // Change write
 				*(int*)(0x807125CC) = 0; // Prevent Helm Timer Overwrite
+				*(short*)(0x807095BE) = 0x2D4; // Change Zipper with K. Rool Laugh
 			}
 			if (Rando.version == 0) {
 				// Disable Graphical Debugger
@@ -318,6 +323,31 @@ void initHack(int source) {
 			if (Rando.wrinkly_rando_on) {
 				*(int*)(0x8064F170) = 0; // Prevent edge cases for Aztec Chunky/Fungi Wheel
 				writeFunction(0x8069E154, &getWrinklyLevelIndex); // Modify Function Call
+			}
+			// Mill Lever
+			if (Rando.mill_lever_order[0] > 0) {
+				int sequence_length = 0;
+				int sequence_ended = 0;
+				for (int i = 0; i < 5; i++) {
+					ReverseMillLeverOrder[i] = 0;
+					if (!sequence_ended) {
+						if (Rando.mill_lever_order[i] == 0) {
+							sequence_ended = 1;
+						} else {
+							sequence_length += 1;
+						}
+					}
+				}
+				*(short*)(0x8064E4CE) = sequence_length;
+				for (int i = 0; i < sequence_length; i++) {
+					ReverseMillLeverOrder[i] = Rando.mill_lever_order[(sequence_length - 1) - i];
+				}
+			}
+			// Crypt Lever
+			if (Rando.crypt_lever_order[0] > 0) {
+				for (int i = 0; i < 3; i++) {
+					ReverseCryptLeverOrder[i] = Rando.crypt_lever_order[2 - i];
+				}
 			}
 			// Object Instance Scripts
 			*(int*)(0x80748064) = (int)&change_object_scripts;
@@ -346,7 +376,7 @@ void initHack(int source) {
 			// Spider Projectile
 			*(int*)(0x806CBD78) = 0x18400005; // BLEZ $v0, 0x5 - Decrease in health occurs if trap bubble active
 			if (Rando.hard_enemies) {
-				writeFunction(0x806ADDC0, &handleSpiderTrapCode);
+				// writeFunction(0x806ADDC0, &handleSpiderTrapCode);
 				*(short*)(0x806B12DA) = 0x3A9; // Kasplat Shockwave Chance
 				*(short*)(0x806B12FE) = 0x3B3; // Kasplat Shockwave Chance
 				actor_health_damage[259].init_health = 9; // Increase Guard Health
@@ -444,6 +474,22 @@ void initHack(int source) {
 			*(unsigned char*)(0x8064A2FD) = chunky_reg_vals[(int)Rando.chunky_face_puzzle_init[5]];
 			*(unsigned char*)(0x8064A301) = chunky_reg_vals[(int)Rando.chunky_face_puzzle_init[7]];
 			*(unsigned char*)(0x8064A305) = chunky_reg_vals[(int)Rando.chunky_face_puzzle_init[8]];
+			SFXVolume = Rando.default_sfx_volume;
+			MusicVolume = Rando.default_music_volume;
+			ScreenRatio = Rando.default_screen_ratio;
+			SoundType = Rando.default_sound_type;
+			int sound_subtype = 1;
+			if (SoundType == 0) {
+				sound_subtype = 2;
+			} else if (SoundType == 2) {
+				sound_subtype = 4;
+			}
+			adjustSFXType_Internal(sound_subtype);
+			for (int i = 0; i < 4; i++) {
+				alterSFXVolume(i, (SFXVolume * 25000) / 40);
+			}
+			alterMusicVolume(0);
+			alterMusicVolume(2);
 			insertROMMessages();
 			LoadedHooks = 1;
 		}
@@ -458,7 +504,7 @@ void quickInit(void) {
 	if (Rando.quality_of_life.fast_boot) {
 		initiateTransitionFade(MAP_NFRTITLESCREEN, 0, 5);
 		CutsceneWillPlay = 0;
-		Gamemode = 5;
+		Gamemode = GAMEMODE_MAINMENU;
 		Mode = 5;
 		StorySkip = 1;
 		*(char*)(0x80745D20) = 7;
