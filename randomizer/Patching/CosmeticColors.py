@@ -555,17 +555,36 @@ def writeColorImageToROM(im_f, table_index, file_index, width, height, transpare
     ROM().writeBytes(data)
 
 
-def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, transparent_border: bool):
+def gzipOptimize(red, blue, green, format):
+    """Clears out the least significant digits of the RGB channels in an attempt to get the RGBA image to fit into their vanilla size restriction."""
+    if format == TextureFormat.RGBA5551:
+        red = red | 0x1800
+        red = red ^ 0x1800
+        green = green | 0xC0
+        green = green ^ 0xC0
+        blue = blue | 0x6
+        blue = blue ^ 0x6
+    elif format == TextureFormat.RGBA32:
+        red = red | 0x6
+        red = red ^ 0x6
+        green = green | 0x6
+        green = green ^ 0x6
+        blue = blue | 0x6
+        blue = blue ^ 0x6
+    return red, green, blue
+
+
+def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, transparent_border: bool, format: TextureFormat):
     """Write texture to ROM. Is also bodged for autocompression."""
     file_start = js.pointer_addresses[table_index]["entries"][file_index]["pointing_to"]
     file_end = js.pointer_addresses[table_index]["entries"][file_index + 1]["pointing_to"]
     file_size = file_end - file_start
     ROM().seek(file_start)
+    attempts = 0
     stored_downsample = 0
     an_issue = True
-    while an_issue:
+    while an_issue and attempts < 10:
         an_issue = False
-        # TODO: actually make the autocompress not crash the video game
         if stored_downsample != 0:
             im_f = im_f.convert("P", palette=Image.ADAPTIVE, colors=stored_downsample)
             im_f = im_f.convert("RGBA")
@@ -579,12 +598,17 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
                 else:
                     pix_data = list(pix[x, y])
                 if format == TextureFormat.RGBA32:
+                    if attempts > 0:
+                        # TODO: find an rgba32 image to actually test
+                        pix_data[0], pix_data[1], pix_data[2] = gzipOptimize(pix_data[0], pix_data[1], pix_data[2], format)
                     bytes_array.extend(pix_data)
                 else:
                     red = int((pix_data[0] >> 3) << 11)
                     green = int((pix_data[1] >> 3) << 6)
                     blue = int((pix_data[2] >> 3) << 1)
                     alpha = int(pix_data[3] != 0) if len(pix_data) > 3 else 1
+                    if attempts > 0:
+                        red, green, blue = gzipOptimize(red, blue, green, format)
                     value = red | green | blue | alpha
                     bytes_array.extend([(value >> 8) & 0xFF, value & 0xFF])
         data = bytearray(bytes_array)
@@ -593,12 +617,16 @@ def badlywriteColorImageToROM(im_f, table_index, file_index, width, height, tran
             print(f"Image too big error: {table_index} :: {file_index};       limit: {bytes_per_px * width * height}    given: {len(data)}")
         if table_index in (14, 25):
             data = gzip.compress(data, compresslevel=9)
-        # for safety reasons, the file must be strictly smaller in tables 14 and 25
-        if (len(data) >= file_size) and table_index in (14, 25) or (len(data) > file_size) and table_index in (7):
-            print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}")
-            stored_downsample = int(len(im_f.getcolors()) * 0.9)
+        if (len(data) > file_size):
+            print(f"File too big error: {table_index} :: {file_index};       limit: {file_size}    given: {len(data)}    attempt: {attempts}")
+            if attempts > 0:
+                stored_downsample = int(len(im_f.getcolors()) * 0.9)
+            attempts += 1
             an_issue = True
-    ROM().writeBytes(data)
+    if not an_issue:
+        ROM().writeBytes(data)
+    else:
+        print(f"Could not write texture {hex(file_index)} from table {table_index} to ROM. File could not be compressed enough to fit into {file_size} bytes.")
 
 
 # format: [intensity_bits, alpha_bits]
@@ -1803,7 +1831,6 @@ def applyHolidayMode(spoiler: Spoiler):
 
 def apply_texture_packs(spoiler: Spoiler):
     """Apply user-submitted textures to the ROM."""
-    # TODO: find a way to only enable this function when a zip is uploaded
     if len(list(js.cosmetics.table7)) != 0 or len(list(js.cosmetics.table14)) != 0 or len(list(js.cosmetics.table25)) != 0:
         uploaded_files = []
         for table in [7, 14, 25]:
@@ -1833,7 +1860,7 @@ def apply_texture_packs(spoiler: Spoiler):
                             print(f"C - {(texture_table[tex_int]).format.name}: {uploaded_names[idx]}")
                             im = BytesIO(bytearray(texture))
                             im_f = Image.open(im)
-                            badlywriteColorImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, False)
+                            badlywriteColorImageToROM(im_f, table, tex_int, texture_table[tex_int].width, texture_table[tex_int].height, False, (texture_table[tex_int]).format)
                         case TextureFormat.IA8 | TextureFormat.IA4 | TextureFormat.IA16 | TextureFormat.I8 | TextureFormat.I4 | TextureFormat.CI8 | TextureFormat.CI4:
                             print(f"I - {(texture_table[tex_int]).format.name}: {uploaded_names[idx]}")
                             im = BytesIO(bytearray(texture))

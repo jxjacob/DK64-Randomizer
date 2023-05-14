@@ -1208,6 +1208,7 @@ textures_14 = [
     TextureFile("Multiplayer half melon (HUD)", TextureFormat.RGBA5551, 14, 186, 8, 8),
 ]
 
+# TODO: update this when i'm done mapping things out in the local script
 textures_25 = [
     TextureFile("Stone/Brick texture", TextureFormat.Null, 25, 0, 32, 64),
     TextureFile("Palette", TextureFormat.RGBA5551, 25, 1, 16, 1),
@@ -1804,7 +1805,7 @@ textures_25 = [
     TextureFile("", TextureFormat.Null, 25, 592, 64, 64),
     TextureFile("", TextureFormat.RGBA5551, 25, 593, 16, 1),
     TextureFile("", TextureFormat.RGBA5551, 25, 594, 64, 32),
-    TextureFile("", TextureFormat.Null, 25, 595, 64, 64),
+    TextureFile("", TextureFormat.CI4, 25, 595, 64, 64),
     TextureFile("", TextureFormat.RGBA5551, 25, 596, 16, 1),
     TextureFile("", TextureFormat.RGBA5551, 25, 597, 64, 32),
     TextureFile("", TextureFormat.RGBA5551, 25, 598, 64, 32),

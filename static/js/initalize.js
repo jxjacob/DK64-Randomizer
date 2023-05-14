@@ -199,7 +199,7 @@ document
         let table25 = table25_files.map(x => x.file);
         let table25_names = table25_files.map(x => x.name);
 
-        cosmetics = { bgm: bgm, majoritems: majoritems, minoritems: minoritems, events: events };
+        cosmetics = { bgm: bgm, majoritems: majoritems, minoritems: minoritems, events: events, table7: table7, table14: table14, table25: table25 };
         cosmetic_names = {bgm: bgm_names, majoritems: majoritem_names, minoritems: minoritem_names, events: event_names, table7: table7_names, table14: table14_names, table25: table25_names };
       });
     };
