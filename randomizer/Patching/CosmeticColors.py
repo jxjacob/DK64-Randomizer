@@ -1882,7 +1882,7 @@ def applyHolidayMode(settings):
             ROM().writeBytes(byte_data)
 
 
-def apply_texture_packs(spoiler: Spoiler):
+def apply_texture_packs(settings):
     """Apply user-submitted textures to the ROM."""
     if len(list(js.cosmetics.table7)) != 0 or len(list(js.cosmetics.table14)) != 0 or len(list(js.cosmetics.table25)) != 0:
         uploaded_files = []

@@ -10,7 +10,7 @@ import time
 import zipfile
 
 import js
-from randomizer.Patching.CosmeticColors import apply_cosmetic_colors, applyHolidayMode, overwrite_object_colors, writeMiscCosmeticChanges
+from randomizer.Patching.CosmeticColors import apply_cosmetic_colors, apply_texture_packs, applyHolidayMode, overwrite_object_colors, writeMiscCosmeticChanges
 from randomizer.Patching.Hash import get_hash_images
 from randomizer.Patching.MusicRando import randomize_music
 from randomizer.Patching.Patcher import ROM
@@ -81,6 +81,7 @@ async def patching_response(data, from_patch_gen=False):
         overwrite_object_colors(settings)
         writeMiscCosmeticChanges(settings)
         applyHolidayMode(settings)
+        apply_texture_packs(settings)
 
         # D-Pad Display
         ROM().seek(sav + 0x139)

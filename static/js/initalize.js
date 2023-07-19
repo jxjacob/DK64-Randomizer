@@ -150,11 +150,11 @@ document
             minoritem_promises.push(createMusicLoadPromise(new_zip, filename));
           } else if (filename.includes("events/") && filename.slice(-4) == ".bin") {
             event_promises.push(createMusicLoadPromise(new_zip, filename));
-          } else if (filename.includes("textures/table_7/") && filename.slice(-4) == ".bin") {
+          } else if (filename.includes("textures/table_7/") && filename.slice(-4) == ".png") {
             table7_promises.push(createMusicLoadPromise(new_zip, filename));
-          } else if (filename.includes("textures/table_14/") && filename.slice(-4) == ".bin") {
+          } else if (filename.includes("textures/table_14/") && filename.slice(-4) == ".png") {
             table14_promises.push(createMusicLoadPromise(new_zip, filename));
-          } else if (filename.includes("textures/table_25/") && filename.slice(-4) == ".bin") {
+          } else if (filename.includes("textures/table_25/") && filename.slice(-4) == ".png") {
             table25_promises.push(createMusicLoadPromise(new_zip, filename));
           }
         }
