@@ -78,7 +78,7 @@
 
 | Map | Name | Logic |
 | --- | ---- | ----- |
-| Gloomy Galleon | In a chest | l.camera and l.punch and l.chunky | 
+| Gloomy Galleon | In Punch Chest | l.camera and l.punch and l.chunky | 
 | Galleon5DShip DKTiny | Inside Tiny 5-Door Ship | l.camera | 
 | Gloomy Galleon | Tiny Slam Button | l.camera | 
 | Gloomy Galleon | Tunnel Intersection | l.camera | 
@@ -103,8 +103,8 @@
 
 | Map | Name | Logic |
 | --- | ---- | ----- |
-| Forest Thornvine Barn | DK's Barn | l.Slam and l.camera | 
-| Forest Rafters | Dark Attic | l.guitar and l.isdiddy and l.camera | 
+| Forest Thornvine Barn | Thornvine Barn | l.isdonkey and l.Slam and l.camera | 
+| Forest Rafters | Dark Rafters | l.guitar and l.isdiddy and l.camera | 
 | Fungi Forest | Above Blue Tunnel | l.camera | 
 | Fungi Forest | Above the Clock | l.camera | 
 | Fungi Forest | Above the Well | l.camera and l.vines | 
@@ -134,7 +134,7 @@
 | Map | Name | Logic |
 | --- | ---- | ----- |
 | Caves Diddy Upper Cabin | Diddy Candles Cabin | l.camera and (l.guitar or l.oranges) and l.spring and l.jetpack and l.isdiddy | 
-| Caves Tiny Igloo | Tiny Igloo | l.Slam and (l.istiny or l.settings.free_trade_items) and l.camera | 
+| Caves Tiny Igloo | Tiny Igloo | l.Slam and l.istiny and l.camera | 
 | Crystal Caves | Level Start | l.camera | 
 | Crystal Caves | Gorilla Gone Room | l.camera and ((l.chunky and l.punch) or l.phasewalk or l.CanPhaseswim()) | 
 | Crystal Caves | Ice Castle Roof | l.camera | 
@@ -146,13 +146,13 @@
 | Crystal Caves | Near Bonus Waterfall | l.camera | 
 | Crystal Caves | Blueprint Cave | l.camera | 
 | Crystal Caves | 5-Door Cabin Exterior | l.camera | 
-| Crystal Caves | Near 1-Door Cabin | l.camera | 
+| Crystal Caves | Near Lanky Cabin | l.camera | 
 | Crystal Caves | Under Waterfall Bridge | l.camera | 
 | Caves Frozen Castle | Inside Tile Flip Room | l.camera | 
 | Caves Chunky Igloo | Chunky 5-Door Igloo | l.camera | 
 | Caves Diddy Igloo | Diddy 5-Door Igloo | l.camera | 
 | Caves Donkey Igloo | Donkey 5-Door Igloo | l.camera | 
-| Caves Lanky Cabin | 1-Door Cabin | l.camera | 
+| Caves Lanky Cabin | Lanky Cabin | l.camera | 
 | Caves Chunky Cabin | Chunky 5-Door Cabin | l.camera | 
 </details>
 
@@ -162,7 +162,7 @@
 
 | Map | Name | Logic |
 | --- | ---- | ----- |
-| Castle Tree | Tree Sniper Room | l.camera and (((l.coconut or l.generalclips) and l.isdonkey) or l.phasewalk) | 
+| Castle Tree | Tree Sniper Room | l.camera and l.swim and (((l.coconut or l.generalclips) and l.isdonkey) or l.phasewalk) | 
 | Castle Museum | Near Car Race | l.camera | 
 | Creepy Castle | Start | l.camera | 
 | Creepy Castle | On Castle Tree | l.camera | 

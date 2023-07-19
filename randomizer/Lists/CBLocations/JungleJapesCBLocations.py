@@ -1,12 +1,11 @@
 """Stores the data for the locations of colored bananas and balloons in Jungle Japes."""
 
 from randomizer.Enums.Events import Events
-from randomizer.Enums.Regions import Regions
-from randomizer.Lists.MapsAndExits import Maps
 from randomizer.Enums.Kongs import Kongs
 from randomizer.Enums.Levels import Levels
+from randomizer.Enums.Regions import Regions
+from randomizer.Lists.MapsAndExits import Maps
 from randomizer.LogicClasses import Balloon, ColoredBananaGroup
-
 
 ColoredBananaGroupList = [
     ColoredBananaGroup(
@@ -210,7 +209,7 @@ ColoredBananaGroupList = [
             [1, 1.0, 1842, 520, 1995],
             [1, 1.0, 1783, 520, 2055],
             [1, 1.0, 1783, 520, 2155],
-            [1, 1.0, 1783, 520, 2155],
+            [1, 1.0, 1845, 520, 2207],
             [1, 1.0, 1993, 510, 1909],
             [1, 1.0, 1994, 450, 1883],
             [1, 1.0, 1995, 397, 1860],

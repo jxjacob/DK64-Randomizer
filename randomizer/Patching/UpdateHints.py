@@ -5,45 +5,45 @@ from io import BytesIO
 import js
 from randomizer.Enums.Kongs import Kongs
 from randomizer.Lists.WrinklyHints import HintLocation, hints
-from randomizer.Patching.Patcher import ROM
 from randomizer.Patching.Lib import grabText, writeText
-from randomizer.Spoiler import Spoiler
+from randomizer.Patching.Patcher import ROM, LocalROM
 
 
 def writeWrinklyHints(file_start_offset, text):
     """Write the text to ROM."""
-    ROM().seek(file_start_offset)
-    ROM().writeMultipleBytes(len(text), 1)
+    ROM_COPY = LocalROM()
+    ROM_COPY.seek(file_start_offset)
+    ROM_COPY.writeMultipleBytes(len(text), 1)
     position = 0
     offset = 1
     for textbox in text:
-        ROM().seek(file_start_offset + offset)
-        ROM().writeMultipleBytes(1, 1)
-        ROM().seek(file_start_offset + offset + 1)
-        ROM().writeMultipleBytes(1, 1)
-        ROM().seek(file_start_offset + offset + 2)
-        ROM().writeMultipleBytes(len(textbox), 1)
+        ROM_COPY.seek(file_start_offset + offset)
+        ROM_COPY.writeMultipleBytes(1, 1)
+        ROM_COPY.seek(file_start_offset + offset + 1)
+        ROM_COPY.writeMultipleBytes(1, 1)
+        ROM_COPY.seek(file_start_offset + offset + 2)
+        ROM_COPY.writeMultipleBytes(len(textbox), 1)
         offset += 3
         for string in textbox:
-            ROM().seek(file_start_offset + offset)
-            ROM().writeMultipleBytes(position, 4)
-            ROM().seek(file_start_offset + offset + 4)
-            ROM().writeMultipleBytes(len(string), 2)
-            ROM().seek(file_start_offset + offset + 6)
-            ROM().writeMultipleBytes(0, 2)
+            ROM_COPY.seek(file_start_offset + offset)
+            ROM_COPY.writeMultipleBytes(position, 4)
+            ROM_COPY.seek(file_start_offset + offset + 4)
+            ROM_COPY.writeMultipleBytes(len(string), 2)
+            ROM_COPY.seek(file_start_offset + offset + 6)
+            ROM_COPY.writeMultipleBytes(0, 2)
             offset += 8
             position += len(string)
-        ROM().seek(file_start_offset + offset)
-        ROM().writeMultipleBytes(0, 4)
+        ROM_COPY.seek(file_start_offset + offset)
+        ROM_COPY.writeMultipleBytes(0, 4)
         offset += 4
-    ROM().seek(file_start_offset + offset)
-    ROM().writeMultipleBytes(position, 2)
+    ROM_COPY.seek(file_start_offset + offset)
+    ROM_COPY.writeMultipleBytes(position, 2)
     offset += 2
     for textbox in text:
         for string in textbox:
             for x in range(len(string)):
-                ROM().seek(file_start_offset + offset + x)
-                ROM().writeMultipleBytes(int.from_bytes(string[x].encode("ascii"), "big"), 1)
+                ROM_COPY.seek(file_start_offset + offset + x)
+                ROM_COPY.writeMultipleBytes(int.from_bytes(string[x].encode("ascii"), "big"), 1)
             offset += len(string)
 
 
@@ -103,7 +103,7 @@ def wipeHints():
             hints[x].hint = ""
 
 
-def replaceIngameText(spoiler: Spoiler):
+def replaceIngameText(spoiler):
     """Replace text in-game with defined modifications."""
     for file_index in spoiler.text_changes:
         old_text = grabText(file_index)

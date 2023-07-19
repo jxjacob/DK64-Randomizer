@@ -1,27 +1,26 @@
 """Dump information from various custom location files into a json format in tools/dump."""
-import sys
+import inspect
 import json
 import os
-import inspect
+import sys
 from copy import deepcopy
 from enum import IntEnum, auto
 
-from randomizer.Enums.Levels import Levels
-from randomizer.Lists.MapsAndExits import Maps
-
-import randomizer.Lists.CBLocations.JungleJapesCBLocations
 import randomizer.Lists.CBLocations.AngryAztecCBLocations
-import randomizer.Lists.CBLocations.FranticFactoryCBLocations
-import randomizer.Lists.CBLocations.GloomyGalleonCBLocations
-import randomizer.Lists.CBLocations.FungiForestCBLocations
-import randomizer.Lists.CBLocations.CrystalCavesCBLocations
 import randomizer.Lists.CBLocations.CreepyCastleCBLocations
+import randomizer.Lists.CBLocations.CrystalCavesCBLocations
+import randomizer.Lists.CBLocations.FranticFactoryCBLocations
+import randomizer.Lists.CBLocations.FungiForestCBLocations
+import randomizer.Lists.CBLocations.GloomyGalleonCBLocations
+import randomizer.Lists.CBLocations.JungleJapesCBLocations
+from randomizer.Enums.Levels import Levels
+from randomizer.Lists.BananaCoinLocations import BananaCoinGroupList
 from randomizer.Lists.CrownLocations import CrownLocations
 from randomizer.Lists.DoorLocations import door_locations
 from randomizer.Lists.FairyLocations import fairy_locations
 from randomizer.Lists.KasplatLocations import KasplatLocationList
+from randomizer.Lists.MapsAndExits import Maps
 from randomizer.Lists.Patches import DirtPatchLocations
-from randomizer.Lists.BananaCoinLocations import BananaCoinGroupList
 
 # USAGE OF FILE
 # - python ./dumper.py {format} {desired-files}
@@ -177,7 +176,7 @@ def dump_to_file(name="temp", data={}, format="json", dumper: Dumpers = Dumpers.
             fh.write(f"# {' '.join(name.split('_')).title()} \n")
             if isinstance(data, dict):
                 for x in data:
-                    if "Levels." in str(x):
+                    if "Levels." in str(x) or isinstance(x, int):
                         fh.write(f"\n## {getLevelName(x)}\n")
                     else:
                         fh.write(f"\n## {x}\n")

@@ -1,3 +1,42 @@
+if (typeof window.RufflePlayer !== 'undefined') {
+  // Ruffle extension is loaded
+  var modal = document.createElement('div');
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  modal.style.display = 'flex';
+  modal.style.justifyContent = 'center';
+  modal.style.alignItems = 'center';
+  modal.style.zIndex = '9999';
+
+  var modalContent = document.createElement('div');
+  modalContent.style.backgroundColor = '#333';
+  modalContent.style.padding = '20px';
+  modalContent.style.borderRadius = '5px';
+  modalContent.style.textAlign = 'center';
+
+  var message = document.createElement('p');
+  message.textContent = "The Ruffle extension causes issues with this site (and we're not really sure why). Please disable it for this site.";
+  message.style.color = '#fff';
+  message.style.fontFamily = 'Arial, sans-serif';
+  message.style.fontSize = '16px';
+
+  modalContent.appendChild(message);
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+
+  // Prevent scrolling while the modal is open
+  document.body.style.overflow = 'hidden';
+
+  console.log('Ruffle extension is loaded');
+} else {
+  // Ruffle extension is not loaded
+  console.log('Ruffle extension is not loaded');
+}
+
 // This is a wrapper script to just load the UI python scripts and call python as needed.
 async function run_python_file(file) {
   await pyodide.runPythonAsync(await (await fetch(file)).text());
@@ -7,6 +46,12 @@ if (window.location.protocol != "https:") {
   if (location.hostname != "localhost" && location.hostname != "127.0.0.1") {
     location.href = location.href.replace("http://", "https://");
   }
+}
+
+// if the domain is not the main domain, hide spoiler_warning_2 and spoiler_warning_1
+if (location.hostname == "dk64randomizer.com") {
+  document.getElementById("spoiler_warning_2").style.display = "none";
+  document.getElementById("spoiler_warning_1").style.display = "none";
 }
 
 run_python_file("ui/__init__.py");
@@ -63,6 +108,21 @@ function getFile(file) {
     async: false,
   }).responseText;
 }
+
+function createMusicLoadPromise(jszip, filename) {
+  return new Promise((resolve, reject) => {
+    jszip
+      .file(filename)
+      .async("Uint8Array")
+      .then(function (content) {
+        resolve({
+          name: filename.slice(0, -4),
+          file: content
+        })
+      })
+  });
+}
+
 var cosmetics;
 var cosmetic_names;
 document
@@ -83,96 +143,19 @@ document
 
         for (var filename of Object.keys(new_zip.files)) {
           if (filename.includes("bgm/") && filename.slice(-4) == ".bin") {
-            bgm_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
+            bgm_promises.push(createMusicLoadPromise(new_zip, filename));
           } else if (filename.includes("majoritems/") && filename.slice(-4) == ".bin") {
-            majoritem_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
+            majoritem_promises.push(createMusicLoadPromise(new_zip, filename));
           } else if (filename.includes("minoritems/") && filename.slice(-4) == ".bin") {
-            minoritem_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
+            minoritem_promises.push(createMusicLoadPromise(new_zip, filename));
           } else if (filename.includes("events/") && filename.slice(-4) == ".bin") {
-            event_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
-          } else if (filename.includes("textures/table_7/") && filename.slice(-4) == ".png") {
-            table7_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
-          } else if (filename.includes("textures/table_14/") && filename.slice(-4) == ".png") {
-            table14_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
-          } else if (filename.includes("textures/table_25/") && filename.slice(-4) == ".png") {
-            table25_promises.push(new Promise((resolve, reject) => {
-              var current_filename = filename;
-              new_zip
-                .file(current_filename)
-                .async("Uint8Array")
-                .then(function (content) {
-                  resolve({
-                    name: current_filename.slice(0, -4),
-                    file: content
-                  })
-                });
-            }));
+            event_promises.push(createMusicLoadPromise(new_zip, filename));
+          } else if (filename.includes("textures/table_7/") && filename.slice(-4) == ".bin") {
+            table7_promises.push(createMusicLoadPromise(new_zip, filename));
+          } else if (filename.includes("textures/table_14/") && filename.slice(-4) == ".bin") {
+            table14_promises.push(createMusicLoadPromise(new_zip, filename));
+          } else if (filename.includes("textures/table_25/") && filename.slice(-4) == ".bin") {
+            table25_promises.push(createMusicLoadPromise(new_zip, filename));
           }
         }
 
@@ -332,18 +315,21 @@ romdatabase.onsuccess = function () {
 
 function write_seed_history(seed_id, seed_data, seed_hash) {
   // Get the original fiile
-  var seed_db = seeddatabase.result;
-  var seed_tx = seed_db.transaction("SeedStorage", "readwrite");
-  var seed_store = seed_tx.objectStore("SeedStorage");
-  // Store it in the database
-  const now = new Date();
-  seed_store.put({
-    id: Math.random(),
-    value: seed_data,
-    hash: seed_hash,
-    seed_id: seed_id,
-    date: now,
-  });
+  try{
+    var seed_db = seeddatabase.result;
+    var seed_tx = seed_db.transaction("SeedStorage", "readwrite");
+    var seed_store = seed_tx.objectStore("SeedStorage");
+    // Store it in the database
+    const now = new Date();
+    seed_store.put({
+      id: Math.random(),
+      value: seed_data,
+      hash: seed_hash,
+      seed_id: seed_id,
+      date: now,
+    });
+  }
+  catch{}
 }
 
 function load_old_seeds() {
@@ -422,92 +408,128 @@ function load_file_from_db() {
 var w;
 var CurrentRomHash;
 
-function site_version_checker() {
-  fetch("./static/py_libraries/dk64rando-1.0.0-py3-none-any.whl")
-    .then((response) => response.text())
-    .then((data) => {
-      CurrentRomHash = md5(data);
-    });
-  if (typeof Worker !== "undefined") {
-    if (typeof w == "undefined") {
-      w = new Worker("./static/js/version_worker.js");
+243
+
+
+function base64ToArrayBuffer(base64) {
+    var binaryString = atob(base64);
+    var bytes = new Uint8Array(binaryString.length);
+    for (var i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
     }
-    w.onmessage = function (event) {
-      if (CurrentRomHash != null && event.data != null) {
-        if (CurrentRomHash != event.data) {
-          alert("The Site has been updated. Please refresh the page.");
-        }
-      }
-    };
-  } else {
-    alert("Sorry! No Web Worker support. This site probably wont work.");
-  }
+    return bytes.buffer;
 }
-site_version_checker();
-function generate_seed(url, json, git_branch, run_id) {
+function generate_seed(url, json, git_branch) {
   $.ajax(url, {
     data: JSON.stringify({
-      task_id: run_id,
       branch: git_branch,
       post_body: json,
     }),
     contentType: "application/json",
     type: "POST",
-    success: function (xhr, textStatus) {
+    success: function (data, textStatus, xhr) {
       if (xhr.status == 202) {
+        console.log("seed gen waiting in queue")
         $("#progress-text").text(
           "Waiting in queue for other seeds to generate."
         );
         $("#patchprogress").width("40%");
-        setTimeout(generate_seed(json, git_branch, run_id), 5000);
-      } else {
+        setTimeout(function () {
+          generate_seed(url, json, git_branch);
+        }, 5000);
+      } else if (xhr.status == 201) {
+        console.log("seed gen queued")
+        $("#progress-text").text("Seed Gen Queued");
+        $("#patchprogress").width("30%");
+        setTimeout(function () {
+          generate_seed(url, json, git_branch);
+        }, 5000);
+        
+      } else if (xhr.status == 203) {
+        console.log("seed gen started")
         $("#progress-text").text("Seed Gen Started");
         $("#patchprogress").width("50%");
         setTimeout(function () {
-          var check_status = setInterval(function () {
-            $.ajax(url + "?" + $.param({ task_id: run_id }), {
-              type: "GET",
-              success: function (response) {
-                // Start Patching
-                event_response_data = response;
-                pyodide.runPythonAsync(
-                  `
-                import js
-                from randomizer.Patching.ApplyRandomizer import patching_response
-                patching_response(str(js.event_response_data))
-                `
-                );
-                clearInterval(check_status);
-              },
-              error: function (xhr, textStatus) {
-                if (xhr.status == 425) {
-                  $("#progress-text").text("Seed Generating");
-                  $("#patchprogress").width("70%");
-                } else {
-                  $("#patchprogress").addClass("bg-danger");
-                  $("#progress-text").text(xhr.responseText);
-                  $("#patchprogress").width("100%");
-                  setTimeout(function () {
-                    $("#progressmodal").modal("hide");
-                    $("#patchprogress").removeClass("bg-danger");
-                  }, 3000);
-                  clearInterval(check_status);
-                }
-              },
-            });
-          }, 10000);
-        }, 1000);
+          generate_seed(url, json, git_branch);
+        }, 5000);
+        
+      } else if (xhr.status == 208) {
+        console.log(data)
+        $("#progress-text").text(data);
+        $("#patchprogress").addClass("bg-danger");
+        $("#patchprogress").width("100%");
+        setTimeout(function () {
+          $("#progressmodal").modal("hide");
+          $("#patchprogress").removeClass("bg-danger");
+          $("#patchprogress").width("0%");
+          $("#progress-text").text("");
+        }, 5000);
+        
+      } else {
+        $("#progress-text").text("Seed Gen Complete");
+        $("#patchprogress").width("80%");    
+        apply_patch(data, true);       
       }
     },
-    error: function (xhr, textStatus) {
+    error: function (data, textStatus, xhr) {
       $("#patchprogress").addClass("bg-danger");
       $("#progress-text").text("Something went wrong please try again");
       $("#patchprogress").width("100%");
       setTimeout(function () {
         $("#progressmodal").modal("hide");
+        $("#patchprogress").removeClass("bg-danger");
+        $("#patchprogress").width("0%");
+        $("#progress-text").text("");
       }, 1000);
     },
   });
+}
+
+async function apply_patch(data, run_async) {
+  // Base64 decode the response
+  event_response_data = data;
+  var decodedData = base64ToArrayBuffer(data);
+  zip = new JSZip();
+
+  try {
+    // Load the zip file data into JSZip
+    const zipFile = await zip.loadAsync(decodedData);
+
+    // Create an array to store all the promises
+    const promises = [];
+
+    // Iterate over each file in the zip
+    zip.forEach(function(relativePath, zipEntry) {
+      if (!zipEntry.dir) {
+        // Extract the file content as a string or other appropriate format
+        // Store the file content in a variable with a name derived from the file name
+        fileName = zipEntry.name.replace(/[^a-zA-Z0-9]/g, '_');
+        if (fileName == "patch") {
+          // Create a promise for each async operation and add it to the array
+          const promise = zipEntry.async('uint8array').then(function(fileContent) {
+            console.log("Applying Xdelta Patch");
+            apply_xdelta(fileContent);
+
+            if (run_async == true) {
+              // Return the promise for pyodide.runPythonAsync
+              return pyodide.runPythonAsync(`
+                import js
+                from randomizer.Patching.ApplyLocal import patching_response
+                patching_response(str(js.event_response_data))
+              `);
+            }
+          });
+
+          promises.push(promise);
+        }
+      }
+    });
+
+    // Wait for all the promises to resolve
+    await Promise.all(promises);
+  } catch (error) {
+    console.error('Error unzipping the file:', error);
+  }
 }
 
 function saveDataToIndexedDB(key, value) {

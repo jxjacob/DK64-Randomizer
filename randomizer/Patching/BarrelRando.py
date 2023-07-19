@@ -1,14 +1,14 @@
 """Apply Boss Locations."""
 import js
 from randomizer.Lists.Minigame import BarrelMetaData, MinigameRequirements
-from randomizer.Patching.Patcher import ROM
-from randomizer.Spoiler import Spoiler
+from randomizer.Patching.Patcher import ROM, LocalROM
 
 
-def randomize_barrels(spoiler: Spoiler):
+def randomize_barrels(spoiler):
     """Randomize barrel locations."""
     barrels = [12, 91]
     if spoiler.settings.bonus_barrel_rando or spoiler.settings.minigames_list_selected:
+        ROM_COPY = LocalROM()
         barrel_replacements = []
         for location, minigame in spoiler.shuffled_barrel_data.items():
             container_map = int(BarrelMetaData[location].map)
@@ -24,22 +24,22 @@ def randomize_barrels(spoiler: Spoiler):
         for cont_map in barrel_replacements:
             cont_map_id = int(cont_map["containing_map"])
             cont_map_setup_address = js.pointer_addresses[9]["entries"][cont_map_id]["pointing_to"]
-            ROM().seek(cont_map_setup_address)
-            model2_count = int.from_bytes(ROM().readBytes(4), "big")
-            ROM().seek(cont_map_setup_address + 4 + (model2_count * 0x30))
-            mystery_count = int.from_bytes(ROM().readBytes(4), "big")
-            ROM().seek(cont_map_setup_address + 4 + (model2_count * 0x30) + 4 + (mystery_count * 0x24))
-            actor_count = int.from_bytes(ROM().readBytes(4), "big")
+            ROM_COPY.seek(cont_map_setup_address)
+            model2_count = int.from_bytes(ROM_COPY.readBytes(4), "big")
+            ROM_COPY.seek(cont_map_setup_address + 4 + (model2_count * 0x30))
+            mystery_count = int.from_bytes(ROM_COPY.readBytes(4), "big")
+            ROM_COPY.seek(cont_map_setup_address + 4 + (model2_count * 0x30) + 4 + (mystery_count * 0x24))
+            actor_count = int.from_bytes(ROM_COPY.readBytes(4), "big")
             start_of_actor_range = cont_map_setup_address + 4 + (model2_count * 0x30) + 4 + (mystery_count * 0x24) + 4
             for x in range(actor_count):
                 start_of_actor = start_of_actor_range + (0x38 * x)
-                ROM().seek(start_of_actor)
-                ROM().seek(start_of_actor + 0x32)
-                actor_type = int.from_bytes(ROM().readBytes(2), "big")
+                ROM_COPY.seek(start_of_actor)
+                ROM_COPY.seek(start_of_actor + 0x32)
+                actor_type = int.from_bytes(ROM_COPY.readBytes(2), "big")
                 if actor_type in barrels:
-                    ROM().seek(start_of_actor + 0x34)
-                    actor_id = int.from_bytes(ROM().readBytes(2), "big")
+                    ROM_COPY.seek(start_of_actor + 0x34)
+                    actor_id = int.from_bytes(ROM_COPY.readBytes(2), "big")
                     for barrel in cont_map["barrels"]:
                         if int(barrel["instance_id"]) == actor_id:
-                            ROM().seek(start_of_actor + 0x12)
-                            ROM().writeMultipleBytes(barrel["new_map"], 2)
+                            ROM_COPY.seek(start_of_actor + 0x12)
+                            ROM_COPY.writeMultipleBytes(barrel["new_map"], 2)
